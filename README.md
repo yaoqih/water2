@@ -16,7 +16,6 @@
 - `docs/MQTT_TIMESCALE_V1_SPEC.md`：协议规范
 - `docs/DATABASE_SCHEMA.md`：数据库设计
 - `docs/CONTROL_PLANE_GRAFANA_POSTGREST.md`：管理面实现
-- `docs/GRAFANA_SQL_AUDIT_2026-02-12.md`：Grafana/页面/SQL/文档专项审计
 
 ## 1) 双环境模型（prod/test）
 

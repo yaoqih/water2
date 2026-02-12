@@ -1,0 +1,468 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "libraryPanel": {
+        "name": "IoT Admin Navigation",
+        "uid": "lib_iot_admin_nav"
+      },
+      "options": {
+        "content": "[🏠 总览](/d/iot-v1-admin-home) · [🏭 厂站](/d/iot-v1-admin-plant) · [📍 点位](/d/iot-v1-admin-point) · [📟 设备](/d/iot-v1-admin-device) · [📚 指标](/d/iot-v1-admin-metric)",
+        "mode": "markdown"
+      },
+      "title": "导航",
+      "type": "text"
+    },
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "id": 2,
+      "options": {
+        "content": "> **操作状态（厂站）**：${last_plant_action}  `${last_plant_action_ts}`",
+        "mode": "markdown"
+      },
+      "title": "操作状态",
+      "type": "text"
+    },
+    {
+      "datasource": "TimescaleDB-RO",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "edit"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "编辑",
+                    "url": "/d/iot-v1-admin-plant?var-edit_plant_id=${__data.fields.plant_id:percentencode}"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "编辑"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "delete"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "删除",
+                    "url": "/d/iot-v1-admin-plant?var-edit_plant_id=${__data.fields.plant_id:percentencode}&var-row_delete_plant_id=${__data.fields.plant_id:percentencode}"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "删除"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 3,
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT plant_id, plant_name, timezone, longitude, latitude, point_count, device_count, created_at,\n       '编辑' AS edit,\n       '删除' AS delete\nFROM admin_api.v_plant_list\nORDER BY created_at DESC\nLIMIT 200;\n",
+          "refId": "A"
+        }
+      ],
+      "title": "厂站列表（行内编辑/删除）",
+      "type": "table"
+    },
+    {
+      "datasource": "TimescaleDB-RO",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 4,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "body": "确认执行本次操作？",
+          "cancel": "取消",
+          "columns": {
+            "include": [
+              "name",
+              "newValue"
+            ],
+            "name": "字段",
+            "newValue": "值"
+          },
+          "confirm": "确认",
+          "elementDisplayMode": "all",
+          "title": "确认提交"
+        },
+        "elementValueChanged": "if (context.element.id === 'plant_pick') {\n  const v = String(context.element.value ?? '').trim();\n  context.grafana.locationService.partial({'var-edit_plant_id': v}, true);\n  const syncObj = {};\n  syncObj['plant_pick'] = v;\n  context.panel.setFormValue(syncObj);\n  if (!v) {\n    context.panel.setFormValue({ plant_id: '', plant_name: '', longitude: '', latitude: '', timezone: 'Asia/Shanghai' });\n  }\n  const focusPrimaryField = () => {\n    if (typeof document === 'undefined') return;\n    const selectors = [\n      'input[name=\"plant_id\"]',\n      'textarea[name=\"plant_id\"]',\n      'input[id=\"plant_id\"]',\n      '[aria-label=\"plant_id\"]',\n      '[data-testid*=\"plant_id\"] input',\n    ];\n    for (const selector of selectors) {\n      const el = document.querySelector(selector);\n      if (el && typeof el.focus === 'function') {\n        el.focus();\n        if (typeof el.select === 'function') {\n          el.select();\n        }\n        break;\n      }\n    }\n  };\n  setTimeout(focusPrimaryField, 0);\n  setTimeout(focusPrimaryField, 120);\n}\n",
+        "elements": [
+          {
+            "fieldName": "plant_pick",
+            "id": "plant_pick",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "B",
+              "value": "value"
+            },
+            "title": "选择已有厂站",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "plant_id",
+            "id": "plant_id",
+            "queryField": {
+              "label": "A:plant_id",
+              "refId": "A",
+              "value": "plant_id"
+            },
+            "title": "plant_id（可新建）",
+            "type": "string",
+            "value": ""
+          },
+          {
+            "fieldName": "plant_name",
+            "id": "plant_name",
+            "queryField": {
+              "label": "A:plant_name",
+              "refId": "A",
+              "value": "plant_name"
+            },
+            "title": "plant_name",
+            "type": "string",
+            "value": ""
+          },
+          {
+            "fieldName": "longitude",
+            "id": "longitude",
+            "queryField": {
+              "label": "A:longitude",
+              "refId": "A",
+              "value": "longitude"
+            },
+            "title": "longitude",
+            "type": "string",
+            "value": ""
+          },
+          {
+            "fieldName": "latitude",
+            "id": "latitude",
+            "queryField": {
+              "label": "A:latitude",
+              "refId": "A",
+              "value": "latitude"
+            },
+            "title": "latitude",
+            "type": "string",
+            "value": ""
+          },
+          {
+            "fieldName": "timezone",
+            "id": "timezone",
+            "queryField": {
+              "label": "A:timezone",
+              "refId": "A",
+              "value": "timezone"
+            },
+            "title": "timezone",
+            "type": "string",
+            "value": ""
+          }
+        ],
+        "initial": {
+          "code": "const autoId = String('${row_delete_plant_id}' ?? '').trim();\nif (!autoId) return;\nconst guardStore = (typeof window !== 'undefined')\n  ? (window.__iotAdminDeleteGuards = window.__iotAdminDeleteGuards || {})\n  : null;\nconst guardKey = 'row_delete_plant_id:' + autoId;\nif (guardStore && guardStore[guardKey]) return;\nif (guardStore) {\n  guardStore[guardKey] = true;\n}\nconst releaseGuard = () => {\n  if (guardStore) {\n    delete guardStore[guardKey];\n  }\n};\nreturn (async () => {\n  try {\n    if (!confirm('确认删除厂站 ' + autoId + '（非强制删除：存在下属设备时会拒绝）？')) {\n      context.grafana.locationService.partial({'var-row_delete_plant_id': '', 'var-edit_plant_id': ''}, true);\n      return;\n    }\n    context.grafana.locationService.partial({'var-row_delete_plant_id': ''}, true);\n    const dsName = context.panel.options?.update?.datasource || 'TimescaleDB-Admin';\n    const dsInfo = await context.grafana.backendService.get('/api/datasources/name/' + encodeURIComponent(dsName));\n    const uid = dsInfo?.uid;\n    if (!uid) throw new Error('未找到数据源: ' + dsName);\n    const rawSql = \"SELECT * FROM admin_api.delete_plant(${row_delete_plant_id:sqlstring}, false);\";\n    const body = {\n      queries: [{\n        refId: 'A',\n        datasource: { uid },\n        editorMode: 'code',\n        format: 'table',\n        rawQuery: true,\n        rawSql,\n        sql: { columns: [{ parameters: [], type: 'function' }], groupBy: [{ property: { type: 'string' }, type: 'groupBy' }], limit: 50 }\n      }],\n      from: 'now-5m',\n      to: 'now'\n    };\n    const queryResp = await context.grafana.backendService.post('/api/ds/query', body);\n    const result = queryResp?.results?.A;\n    if (result?.error) throw new Error(result.error);\n    const frame = result?.frames?.[0];\n    const row = {};\n    if (frame?.schema?.fields && Array.isArray(frame?.data?.values)) {\n      frame.schema.fields.forEach((f, idx) => { row[f.name] = frame.data.values[idx]?.[0]; });\n    }\n    const objectId = String(row.plant_id ?? autoId).trim();\n    const detail = '级联点位 ' + Number(row.deleted_point_count ?? 0) + '，级联设备 ' + Number(row.deleted_device_count ?? 0);\n    const nowIso = new Date().toISOString();\n    context.grafana.notifySuccess(['删除成功', '🗑 已删除厂站 ' + objectId + '，' + detail]);\n    context.grafana.locationService.partial({'var-row_delete_plant_id': '', 'var-edit_plant_id': '', 'var-last_plant_action': '🗑 已删除厂站 ' + objectId + '，' + detail, 'var-last_plant_action_ts': nowIso}, true);\n  try {\n  if (typeof context.grafana.refresh === 'function') {\n    context.grafana.refresh();\n  }\n} catch (e) {}\n\n  } catch (error) {\n    context.grafana.locationService.partial({'var-row_delete_plant_id': '', 'var-edit_plant_id': ''}, true);\n    const msg = error?.message || error?.data?.message || error?.data?.results?.A?.error || error?.statusText || (typeof error === 'string' ? error : '');\n    context.grafana.notifyError(['删除失败', msg || '请检查关联关系或输入']);\n  } finally {\n    releaseGuard();\n  }\n})();\n",
+          "contentType": "application/json",
+          "getPayload": "return { rawSql: '', format: 'table' };",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "query",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "horizontal",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "single"
+        },
+        "reset": {
+          "icon": "process",
+          "text": "重置",
+          "variant": "secondary"
+        },
+        "resetAction": {
+          "code": "context.panel.initialRequest();",
+          "confirm": false,
+          "getPayload": "return {};",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "icon": "save",
+          "text": "提交",
+          "variant": "primary"
+        },
+        "sync": true,
+        "update": {
+          "code": "const ok = context.panel.response && context.panel.response.state === 'Done';\nif (ok) {\n  const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\n  const objectId = String(get('plant_id') ?? '').trim();\n  const nowIso = new Date().toISOString();\n  const msg = '💾 已保存厂站 ' + (objectId || '-');\n  context.grafana.notifySuccess(['成功', msg]);\n  context.grafana.locationService.partial({\n    'var-last_plant_action': msg,\n    'var-last_plant_action_ts': nowIso,\n    'var-row_delete_plant_id': '',\n    'var-edit_plant_id': objectId || ''\n  }, true);\n\nlet refreshed = false;\ntry {\n  if (typeof context.grafana.refresh === 'function') {\n    context.grafana.refresh();\n    refreshed = true;\n  }\n} catch (e) {}\n\nsetTimeout(() => {\n  try {\n    if (context.grafana.locationService && typeof context.grafana.locationService.reload === 'function') {\n      context.grafana.locationService.reload();\n    } else if (!refreshed && typeof window !== 'undefined' && window.location) {\n      window.location.reload();\n    }\n  } catch (e) {}\n}, 100);\n\n} else {\n  context.grafana.notifyError(['失败', '请检查输入']);\n}\n",
+          "confirm": true,
+          "contentType": "application/json",
+          "datasource": "TimescaleDB-Admin",
+          "getPayload": "const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\nconst esc = (v) => String(v ?? '').trim().replace(/'/g, \"''\");\nconst toNumOrNull = (v) => {\n  const s = String(v ?? '').trim();\n  if (!s) return 'NULL';\n  if (!/^-?\\d+(\\.\\d+)?$/.test(s)) throw new Error('经纬度必须为数字');\n  return s;\n};\nconst plant_id = esc(get('plant_id'));\nconst plant_name = esc(get('plant_name'));\nif (!plant_id || !plant_name) throw new Error('plant_id 与 plant_name 必填');\nreturn {\n  plant_id,\n  plant_name,\n  longitude_sql: toNumOrNull(get('longitude')),\n  latitude_sql: toNumOrNull(get('latitude')),\n  timezone: esc(get('timezone') || 'Asia/Shanghai'),\n};\n",
+          "method": "datasource",
+          "payload": {
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT * FROM admin_api.upsert_plant('${payload.plant_id}', '${payload.plant_name}', ${payload.longitude_sql}, ${payload.latitude_sql}, '${payload.timezone}');",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          },
+          "payloadMode": "custom"
+        },
+        "updateEnabled": "auto"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT plant_id, plant_name, COALESCE(longitude::text,'') AS longitude, COALESCE(latitude::text,'') AS latitude, timezone FROM plant WHERE plant_id = ${edit_plant_id:sqlstring} LIMIT 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        },
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '（新建）' AS label UNION ALL SELECT plant_id AS value, plant_id AS label FROM plant ORDER BY label;",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        }
+      ],
+      "title": "厂站编辑（新增/修改）",
+      "type": "volkovlabs-form-panel"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "iot",
+    "admin",
+    "plant",
+    "point"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": "TimescaleDB-RO",
+        "definition": "SELECT plant_id FROM plant ORDER BY plant_id;",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "edit_plant_id",
+        "options": [],
+        "query": "SELECT plant_id FROM plant ORDER BY plant_id;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "last_plant_action",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "last_plant_action_ts",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "row_delete_plant_id",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "IoT V1 Admin · Plant",
+  "uid": "iot-v1-admin-plant",
+  "version": 2
+}

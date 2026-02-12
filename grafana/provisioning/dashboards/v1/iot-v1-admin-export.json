@@ -1,0 +1,646 @@
+{
+  "id": null,
+  "uid": "iot-v1-admin-export",
+  "title": "IoT V1 Admin · Export",
+  "tags": [
+    "iot",
+    "admin",
+    "export"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 118,
+  "refresh": "30s",
+  "editable": true,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "export_fields",
+        "type": "query",
+        "label": "导出字段",
+        "datasource": "TimescaleDB-RO",
+        "query": "SELECT field_key AS __value, (field_label || ' [' || field_key || ']') AS __text FROM admin_api.v_metric_export_fields ORDER BY field_order;",
+        "definition": "SELECT field_key AS __value, (field_label || ' [' || field_key || ']') AS __text FROM admin_api.v_metric_export_fields ORDER BY field_order;",
+        "refresh": 1,
+        "hide": 2,
+        "includeAll": false,
+        "multi": true,
+        "sort": 1,
+        "skipUrlSync": false,
+        "current": {
+          "selected": true,
+          "text": [
+            "ingest_ts",
+            "plant_id",
+            "plant_name",
+            "point_id",
+            "point_type",
+            "device_id",
+            "metric",
+            "value_num",
+            "unit"
+          ],
+          "value": [
+            "ingest_ts",
+            "plant_id",
+            "plant_name",
+            "point_id",
+            "point_type",
+            "device_id",
+            "metric",
+            "value_num",
+            "unit"
+          ]
+        },
+        "options": [],
+        "regex": ""
+      },
+      {
+        "name": "export_limit",
+        "type": "custom",
+        "label": "API导出行数上限",
+        "query": "200,1000,5000,10000,0",
+        "current": {
+          "selected": true,
+          "text": "1000",
+          "value": "1000"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "200",
+            "value": "200"
+          },
+          {
+            "selected": true,
+            "text": "1000",
+            "value": "1000"
+          },
+          {
+            "selected": false,
+            "text": "5000",
+            "value": "5000"
+          },
+          {
+            "selected": false,
+            "text": "10000",
+            "value": "10000"
+          },
+          {
+            "selected": false,
+            "text": "不限",
+            "value": "0"
+          }
+        ],
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "skipUrlSync": false
+      },
+      {
+        "name": "plant_id",
+        "type": "query",
+        "label": "plant_id",
+        "datasource": "TimescaleDB-RO",
+        "query": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT p.plant_id AS __value, p.plant_id AS __text FROM plant p ORDER BY __text;",
+        "definition": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT p.plant_id AS __value, p.plant_id AS __text FROM plant p ORDER BY __text;",
+        "refresh": 1,
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "skipUrlSync": false,
+        "current": {
+          "selected": true,
+          "text": "全部",
+          "value": ""
+        },
+        "options": [],
+        "regex": ""
+      },
+      {
+        "name": "point_id",
+        "type": "query",
+        "label": "point_id",
+        "datasource": "TimescaleDB-RO",
+        "query": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT pt.point_id AS __value, pt.point_id AS __text FROM point pt ORDER BY __text;",
+        "definition": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT pt.point_id AS __value, pt.point_id AS __text FROM point pt ORDER BY __text;",
+        "refresh": 1,
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "skipUrlSync": false,
+        "current": {
+          "selected": true,
+          "text": "全部",
+          "value": ""
+        },
+        "options": [],
+        "regex": ""
+      },
+      {
+        "name": "device_id",
+        "type": "query",
+        "label": "device_id",
+        "datasource": "TimescaleDB-RO",
+        "query": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT d.device_id AS __value, d.device_id AS __text FROM device d ORDER BY __text;",
+        "definition": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT d.device_id AS __value, d.device_id AS __text FROM device d ORDER BY __text;",
+        "refresh": 1,
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "skipUrlSync": false,
+        "current": {
+          "selected": true,
+          "text": "全部",
+          "value": ""
+        },
+        "options": [],
+        "regex": ""
+      },
+      {
+        "name": "metric",
+        "type": "query",
+        "label": "metric",
+        "datasource": "TimescaleDB-RO",
+        "query": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT md.metric AS __value, md.metric AS __text FROM metric_dict md ORDER BY __text;",
+        "definition": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT md.metric AS __value, md.metric AS __text FROM metric_dict md ORDER BY __text;",
+        "refresh": 1,
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "skipUrlSync": false,
+        "current": {
+          "selected": true,
+          "text": "全部",
+          "value": ""
+        },
+        "options": [],
+        "regex": ""
+      },
+      {
+        "name": "point_type",
+        "type": "custom",
+        "label": "point_type",
+        "query": "all,inlet,outlet",
+        "current": {
+          "selected": true,
+          "text": "all",
+          "value": "all"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "all",
+            "value": "all"
+          },
+          {
+            "selected": false,
+            "text": "inlet",
+            "value": "inlet"
+          },
+          {
+            "selected": false,
+            "text": "outlet",
+            "value": "outlet"
+          }
+        ],
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "skipUrlSync": false
+      },
+      {
+        "name": "topic",
+        "type": "query",
+        "label": "topic",
+        "datasource": "TimescaleDB-RO",
+        "query": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT DISTINCT ve.topic AS __value, ve.topic AS __text FROM admin_api.v_metric_export ve WHERE ve.topic IS NOT NULL AND ve.topic <> '' ORDER BY __text;",
+        "definition": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT DISTINCT ve.topic AS __value, ve.topic AS __text FROM admin_api.v_metric_export ve WHERE ve.topic IS NOT NULL AND ve.topic <> '' ORDER BY __text;",
+        "refresh": 1,
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "sort": 1,
+        "skipUrlSync": false,
+        "current": {
+          "selected": true,
+          "text": "全部",
+          "value": ""
+        },
+        "options": [],
+        "regex": ""
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "导航",
+      "type": "text",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "libraryPanel": {
+        "name": "IoT Admin Navigation",
+        "uid": "lib_iot_admin_nav"
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "[🏠 总览](/d/iot-v1-admin-home) · [🏭 厂站](/d/iot-v1-admin-plant) · [📍 点位](/d/iot-v1-admin-point) · [📟 设备](/d/iot-v1-admin-device) · [📚 指标](/d/iot-v1-admin-metric) · [🧾 导出](/d/iot-v1-admin-export) · [📈 监测大屏](/d/iot-v1-plant-monitor)"
+      }
+    },
+    {
+      "id": 2,
+      "title": "API 导出说明",
+      "type": "text",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "1. 导航下方先看说明，再在 **筛选与下载CSV** 中设置筛选与导出字段。\n2. 点击 **查询**：按当前筛选刷新下方预览（固定 500 行）。\n3. 点击 **下载CSV**：按当前筛选和导出字段导出；API 导出行数选择 `不限` 时由后端按安全策略限流。\n4. 时间范围只使用右上角时间选择器（`ingest_ts`）。"
+      }
+    },
+    {
+      "id": 5,
+      "title": "筛选与下载CSV",
+      "type": "volkovlabs-form-panel",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "B",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '全部' AS label UNION ALL SELECT p.plant_id AS value, p.plant_id AS label FROM plant p ORDER BY label;"
+        },
+        {
+          "refId": "C",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '全部' AS label UNION ALL SELECT pt.point_id AS value, pt.point_id AS label FROM point pt ORDER BY label;"
+        },
+        {
+          "refId": "D",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '全部' AS label UNION ALL SELECT d.device_id AS value, d.device_id AS label FROM device d ORDER BY label;"
+        },
+        {
+          "refId": "E",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '全部' AS label UNION ALL SELECT md.metric AS value, md.metric AS label FROM metric_dict md ORDER BY label;"
+        },
+        {
+          "refId": "F",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '全部' AS label UNION ALL SELECT DISTINCT ve.topic AS value, ve.topic AS label FROM admin_api.v_metric_export ve WHERE ve.topic IS NOT NULL AND ve.topic <> '' ORDER BY label;"
+        }
+      ],
+      "pluginVersion": "6.3.1",
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "title": "确认导出",
+          "body": "确认下载当前筛选结果？",
+          "confirm": "确认",
+          "cancel": "取消",
+          "elementDisplayMode": "all",
+          "columns": {
+            "include": [
+              "name",
+              "newValue"
+            ],
+            "name": "字段",
+            "newValue": "值"
+          }
+        },
+        "elements": [
+          {
+            "fieldName": "plant_id",
+            "id": "plant_id",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "B",
+              "value": "value"
+            },
+            "title": "plant_id",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "point_id",
+            "id": "point_id",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "C",
+              "value": "value"
+            },
+            "title": "point_id",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "device_id",
+            "id": "device_id",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "D",
+              "value": "value"
+            },
+            "title": "device_id",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "metric",
+            "id": "metric",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "E",
+              "value": "value"
+            },
+            "title": "metric",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "point_type",
+            "id": "point_type",
+            "title": "point_type",
+            "type": "select",
+            "value": "all",
+            "options": [
+              {
+                "label": "all",
+                "value": "all"
+              },
+              {
+                "label": "inlet",
+                "value": "inlet"
+              },
+              {
+                "label": "outlet",
+                "value": "outlet"
+              }
+            ]
+          },
+          {
+            "fieldName": "topic",
+            "id": "topic",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "F",
+              "value": "value"
+            },
+            "title": "topic",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "export_fields",
+            "id": "export_fields",
+            "title": "导出字段",
+            "type": "multiselect",
+            "value": [
+              "ingest_ts",
+              "plant_id",
+              "plant_name",
+              "point_id",
+              "point_type",
+              "device_id",
+              "metric",
+              "value_num",
+              "unit"
+            ],
+            "options": [
+              {
+                "label": "ingest_ts",
+                "value": "ingest_ts"
+              },
+              {
+                "label": "plant_id",
+                "value": "plant_id"
+              },
+              {
+                "label": "plant_name",
+                "value": "plant_name"
+              },
+              {
+                "label": "point_id",
+                "value": "point_id"
+              },
+              {
+                "label": "point_name",
+                "value": "point_name"
+              },
+              {
+                "label": "point_type",
+                "value": "point_type"
+              },
+              {
+                "label": "device_id",
+                "value": "device_id"
+              },
+              {
+                "label": "metric",
+                "value": "metric"
+              },
+              {
+                "label": "value_num",
+                "value": "value_num"
+              },
+              {
+                "label": "unit",
+                "value": "unit"
+              },
+              {
+                "label": "alarm_low",
+                "value": "alarm_low"
+              },
+              {
+                "label": "alarm_high",
+                "value": "alarm_high"
+              },
+              {
+                "label": "topic",
+                "value": "topic"
+              }
+            ]
+          },
+          {
+            "fieldName": "export_limit",
+            "id": "export_limit",
+            "title": "API导出行数上限",
+            "type": "select",
+            "value": "1000",
+            "options": [
+              {
+                "label": "200",
+                "value": "200"
+              },
+              {
+                "label": "1000",
+                "value": "1000"
+              },
+              {
+                "label": "5000",
+                "value": "5000"
+              },
+              {
+                "label": "10000",
+                "value": "10000"
+              },
+              {
+                "label": "不限",
+                "value": "0"
+              }
+            ]
+          }
+        ],
+        "initial": {
+          "code": "context.panel.enableSubmit();\nconst defaultFields = ['ingest_ts','plant_id','plant_name','point_id','point_type','device_id','metric','value_num','unit'];\nconst parseFields = (raw) => {\n  const s = String(raw ?? '').trim();\n  if (!s || s.includes('${')) return defaultFields;\n  const arr = s.split(',').map((v) => String(v).trim()).filter(Boolean);\n  return arr.length ? arr : defaultFields;\n};\ncontext.panel.setFormValue({\n  plant_id: '${plant_id}',\n  point_id: '${point_id}',\n  device_id: '${device_id}',\n  metric: '${metric}',\n  point_type: '${point_type}' || 'all',\n  topic: '${topic}',\n  export_fields: parseFields('${export_fields:raw}'),\n  export_limit: '${export_limit}' || '1000'\n});",
+          "contentType": "application/json",
+          "getPayload": "return { rawSql: '', format: 'table' };",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "query",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "horizontal",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "single"
+        },
+        "reset": {
+          "icon": "search",
+          "text": "查询",
+          "variant": "secondary"
+        },
+        "resetAction": {
+          "code": "const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\nconst txt = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst defaultFields = ['ingest_ts','plant_id','plant_name','point_id','point_type','device_id','metric','value_num','unit'];\nconst fieldsValue = get('export_fields');\nconst fields = (Array.isArray(fieldsValue) ? fieldsValue : []).map((v) => txt(v)).filter(Boolean);\ncontext.grafana.locationService.partial({\n  'var-plant_id': txt(get('plant_id')),\n  'var-point_id': txt(get('point_id')),\n  'var-device_id': txt(get('device_id')),\n  'var-metric': txt(get('metric')),\n  'var-point_type': txt(get('point_type')) || 'all',\n  'var-topic': txt(get('topic')),\n  'var-export_fields': fields.length ? fields : defaultFields,\n  'var-export_limit': txt(get('export_limit')) || '1000'\n}, true);\ncontext.grafana.refresh();",
+          "confirm": false,
+          "getPayload": "return {};",
+          "mode": "custom",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "icon": "save",
+          "text": "下载CSV",
+          "variant": "primary"
+        },
+        "sync": true,
+        "update": {
+          "code": "const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\nconst txt = (v) => (v === null || v === undefined ? '' : String(v).trim());\n\nconst allowedFields = [\n  'ingest_ts',\n  'plant_id',\n  'plant_name',\n  'plant_timezone',\n  'point_id',\n  'point_name',\n  'point_type',\n  'device_id',\n  'metric',\n  'unit',\n  'alarm_low',\n  'alarm_high',\n  'value_num',\n  'topic',\n  'raw_id'\n];\nconst defaultFields = [\n  'ingest_ts',\n  'plant_id',\n  'plant_name',\n  'point_id',\n  'point_type',\n  'device_id',\n  'metric',\n  'value_num',\n  'unit'\n];\n\nconst normalizeFields = (raw) => {\n  const arr = Array.isArray(raw) ? raw : [];\n  const seen = {};\n  const out = [];\n  for (const item of arr) {\n    const f = txt(item).toLowerCase();\n    if (!f || !allowedFields.includes(f) || seen[f]) continue;\n    seen[f] = true;\n    out.push(f);\n  }\n  return out.length ? out : defaultFields;\n};\n\nconst toArray = (v) => {\n  if (!v) return [];\n  if (Array.isArray(v)) return v;\n  if (Array.isArray(v.buffer)) return v.buffer;\n  if (Array.isArray(v.values)) return v.values;\n  if (typeof v.toArray === 'function') {\n    try {\n      const arr = v.toArray();\n      return Array.isArray(arr) ? arr : [];\n    } catch (_) {\n      return [];\n    }\n  }\n  return [];\n};\n\nconst normalizeFrame = (frame) => {\n  if (!frame) return null;\n  if (frame?.schema?.fields && Array.isArray(frame?.data?.values)) {\n    const headers = frame.schema.fields.map((f) => f.name);\n    const values = frame.data.values.map((col) => toArray(col));\n    return headers.length ? { headers, values } : null;\n  }\n  if (Array.isArray(frame?.fields)) {\n    const headers = frame.fields.map((f) => f?.name || '');\n    const values = frame.fields.map((f) => toArray(f?.values));\n    return headers.length ? { headers, values } : null;\n  }\n  return null;\n};\n\nconst findTableIn = (obj) => {\n  const candidates = [\n    obj?.results?.A?.frames?.[0],\n    obj?.data?.results?.A?.frames?.[0],\n    obj?.A?.frames?.[0],\n    obj?.response?.results?.A?.frames?.[0],\n    obj?.response?.data?.results?.A?.frames?.[0],\n    obj?.payload?.results?.A?.frames?.[0],\n    obj?.result?.frames?.[0],\n    obj?.frames?.[0],\n    ...(Array.isArray(obj?.data) ? obj.data : []),\n    ...(Array.isArray(obj?.response?.data) ? obj.response.data : [])\n  ];\n  for (const c of candidates) {\n    const normalized = normalizeFrame(c);\n    if (normalized) return normalized;\n  }\n  return null;\n};\n\nconst parseRowObjects = (resp) => {\n  const table = findTableIn(resp || {});\n  if (!table) {\n    return [];\n  }\n  const idx = table.headers.indexOf('row_data');\n  if (idx < 0) {\n    throw new Error('导出返回缺少 row_data 列');\n  }\n  return toArray(table.values[idx]).map((v) => {\n    if (v === null || v === undefined) return {};\n    if (typeof v === 'string') {\n      try {\n        return JSON.parse(v);\n      } catch (_) {\n        return {};\n      }\n    }\n    if (typeof v === 'object') return v;\n    return {};\n  });\n};\n\nconst escCsv = (v) => {\n  if (v === null || v === undefined) return '';\n  const s = String(v);\n  return /[\",\\n\\r]/.test(s) ? '\"' + s.replace(/\"/g, '\"\"') + '\"' : s;\n};\n\nconst buildCsv = (rows, fields) => {\n  const lines = [fields.map(escCsv).join(',')];\n  for (const row of rows) {\n    const cols = fields.map((f) => escCsv(row?.[f]));\n    lines.push(cols.join(','));\n  }\n  return { csv: '\\ufeff' + lines.join('\\n'), rowCount: rows.length };\n};\n\nconst saveCsvText = async (csvText, filename) => {\n  if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {\n    try {\n      const handle = await window.showSaveFilePicker({\n        suggestedName: filename,\n        types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }]\n      });\n      const writable = await handle.createWritable();\n      await writable.write(new Blob([csvText], { type: 'text/csv;charset=utf-8;' }));\n      await writable.close();\n      return;\n    } catch (_) {\n      // Fallback to classic browser download.\n    }\n  }\n\n  const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });\n  const href = URL.createObjectURL(blob);\n  const a = document.createElement('a');\n  a.href = href;\n  a.download = filename;\n  a.style.display = 'none';\n  document.body.appendChild(a);\n  a.click();\n  document.body.removeChild(a);\n  setTimeout(() => URL.revokeObjectURL(href), 1000);\n};\n\nif (!(context.panel.response && context.panel.response.state === 'Done')) {\n  context.grafana.notifyError(['导出失败', '导出查询未完成']);\n  return;\n}\n\nreturn (async () => {\n  try {\n    const selectedFields = normalizeFields(get('export_fields'));\n    const rows = parseRowObjects(context.panel.response);\n    const { csv, rowCount } = buildCsv(rows, selectedFields);\n    const ts = new Date().toISOString().replace(/[.:]/g, '-');\n    const filename = `metric_export_${ts}.csv`;\n    await saveCsvText(csv, filename);\n    context.grafana.notifySuccess(['导出成功', `已下载 ${rowCount} 行`]);\n  } catch (error) {\n    const msg = error?.message || error?.statusText || '导出请求失败';\n    context.grafana.notifyError(['导出失败', msg]);\n  }\n})();\n",
+          "confirm": false,
+          "contentType": "application/json",
+          "datasource": "TimescaleDB-RO",
+          "getPayload": "const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\nconst txt = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst escSql = (v) => String(v).replace(/'/g, \"''\");\n\nconst allowedFields = [\n  'ingest_ts',\n  'plant_id',\n  'plant_name',\n  'plant_timezone',\n  'point_id',\n  'point_name',\n  'point_type',\n  'device_id',\n  'metric',\n  'unit',\n  'alarm_low',\n  'alarm_high',\n  'value_num',\n  'topic',\n  'raw_id'\n];\nconst defaultFields = [\n  'ingest_ts',\n  'plant_id',\n  'plant_name',\n  'point_id',\n  'point_type',\n  'device_id',\n  'metric',\n  'value_num',\n  'unit'\n];\n\nconst normalizeFields = (raw) => {\n  const arr = Array.isArray(raw) ? raw : [];\n  const seen = {};\n  const out = [];\n  for (const item of arr) {\n    const f = txt(item).toLowerCase();\n    if (!f || !allowedFields.includes(f) || seen[f]) continue;\n    seen[f] = true;\n    out.push(f);\n  }\n  return out.length ? out : defaultFields;\n};\n\nconst toNullableTextSql = (v) => {\n  const s = txt(v);\n  return s ? `'${escSql(s)}'` : 'NULL';\n};\n\nconst toTextArraySql = (fields) => {\n  if (!fields.length) return 'NULL';\n  return 'ARRAY[' + fields.map((f) => `'${escSql(f)}'`).join(',') + ']';\n};\n\nconst toLimitSql = (v) => {\n  const n = Number(txt(v) || '1000');\n  if (!Number.isFinite(n)) return '1000';\n  const rounded = Math.round(n);\n  if (rounded <= 0) return '0';\n  return String(Math.min(rounded, 50000));\n};\n\nconst toMsRaw = Number('${__to}');\nconst fromMsRaw = Number('${__from}');\nconst now = Date.now();\nconst fromMs = Number.isFinite(fromMsRaw) ? fromMsRaw : (now - 24 * 3600 * 1000);\nconst toMs = Number.isFinite(toMsRaw) ? toMsRaw : now;\nconst fromIso = new Date(fromMs).toISOString();\nconst toIso = new Date(toMs).toISOString();\n\nconst fields = normalizeFields(get('export_fields'));\nconst pointTypeRaw = txt(get('point_type')).toLowerCase();\nconst pointType = ['all', 'inlet', 'outlet'].includes(pointTypeRaw) ? pointTypeRaw : 'all';\n\ncontext.grafana.locationService.partial({\n  'var-plant_id': txt(get('plant_id')),\n  'var-point_id': txt(get('point_id')),\n  'var-device_id': txt(get('device_id')),\n  'var-metric': txt(get('metric')),\n  'var-point_type': pointType,\n  'var-topic': txt(get('topic')),\n  'var-export_fields': fields,\n  'var-export_limit': txt(get('export_limit')) || '1000'\n}, true);\n\nreturn {\n  fields_csv: fields.join(','),\n  fields_sql: toTextArraySql(fields),\n  from_sql: `'${fromIso}'`,\n  to_sql: `'${toIso}'`,\n  plant_id_sql: toNullableTextSql(get('plant_id')),\n  point_id_sql: toNullableTextSql(get('point_id')),\n  device_id_sql: toNullableTextSql(get('device_id')),\n  metric_sql: toNullableTextSql(get('metric')),\n  point_type_sql: toNullableTextSql(pointType),\n  topic_sql: toNullableTextSql(get('topic')),\n  limit_sql: toLimitSql(get('export_limit')),\n};\n",
+          "method": "datasource",
+          "payload": {
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT row_data\nFROM admin_api.export_metric_rows(\n  ${payload.fields_sql}::text[],\n  ${payload.from_sql}::timestamptz,\n  ${payload.to_sql}::timestamptz,\n  ${payload.plant_id_sql}::text,\n  ${payload.point_id_sql}::text,\n  ${payload.device_id_sql}::text,\n  ${payload.metric_sql}::text,\n  ${payload.point_type_sql}::text,\n  ${payload.topic_sql}::text,\n  ${payload.limit_sql}\n);\n",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50000
+            }
+          },
+          "payloadMode": "custom"
+        },
+        "updateEnabled": "manual"
+      }
+    },
+    {
+      "id": 4,
+      "title": "导出预览（常用筛选）",
+      "type": "table",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ingest_ts,\n       plant_id,\n       plant_name,\n       point_id,\n       point_name,\n       point_type,\n       device_id,\n       metric,\n       value_num,\n       unit,\n       alarm_low,\n       alarm_high,\n       topic\nFROM admin_api.v_metric_export\nWHERE ingest_ts >= $__timeFrom()\n  AND ingest_ts < $__timeTo()\n  AND (${plant_id:sqlstring} = '' OR plant_id = ${plant_id:sqlstring})\n  AND (${point_id:sqlstring} = '' OR point_id = ${point_id:sqlstring})\n  AND (${device_id:sqlstring} = '' OR device_id = ${device_id:sqlstring})\n  AND (${metric:sqlstring} = '' OR metric = ${metric:sqlstring})\n  AND (${point_type:sqlstring} = 'all' OR point_type = ${point_type:sqlstring})\n  AND (${topic:sqlstring} = '' OR topic = ${topic:sqlstring})\nORDER BY ingest_ts DESC\nLIMIT 500;\n"
+        }
+      ]
+    }
+  ]
+}

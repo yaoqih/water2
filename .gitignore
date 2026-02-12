@@ -1,0 +1,26 @@
+# ===== Environment files (keep examples) =====
+env/*.env
+!env/*.env.example
+
+# ===== TLS certificates / private keys =====
+emqx/certs/*
+grafana/certs/*
+postgres/certs/*
+
+# ===== Logs / temp =====
+*.log
+*.pid
+*.tmp
+tmp/
+
+# ===== OS / Editor =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# ===== Python cache (if local tooling is added) =====
+__pycache__/
+.pytest_cache/

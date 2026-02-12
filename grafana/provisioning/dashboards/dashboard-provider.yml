@@ -1,0 +1,23 @@
+apiVersion: 1
+
+providers:
+  - name: iot-v1-viewer
+    orgId: 1
+    folder: IoT
+    type: file
+    disableDeletion: false
+    editable: true
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/viewer
+      foldersFromFilesStructure: false
+  - name: iot-v1-admin
+    orgId: 1
+    folder: IoT-Admin
+    type: file
+    disableDeletion: false
+    editable: true
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/admin
+      foldersFromFilesStructure: false

@@ -1,0 +1,479 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "libraryPanel": {
+        "name": "IoT Admin Navigation",
+        "uid": "lib_iot_admin_nav"
+      },
+      "options": {
+        "content": "[🏠 总览](/d/iot-v1-admin-home) · [🏭 厂站](/d/iot-v1-admin-plant) · [📍 点位](/d/iot-v1-admin-point) · [📟 设备](/d/iot-v1-admin-device) · [📚 指标](/d/iot-v1-admin-metric)",
+        "mode": "markdown"
+      },
+      "title": "导航",
+      "type": "text"
+    },
+    {
+      "datasource": "TimescaleDB-RO",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "edit"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "编辑",
+                    "url": "/d/iot-v1-admin-metric?var-edit_metric=${__data.fields.metric:percentencode}"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "编辑"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "delete"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "删除",
+                    "url": "/d/iot-v1-admin-metric?var-edit_metric=${__data.fields.metric:percentencode}&var-row_delete_metric=${__data.fields.metric:percentencode}"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "删除"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 3,
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT metric, display_name, unit, visible, alarm_low, alarm_high, '编辑' AS edit, '删除' AS delete FROM admin_api.v_metric_dict ORDER BY metric;",
+          "refId": "A"
+        }
+      ],
+      "title": "指标字典（行内编辑/删除）",
+      "type": "table"
+    },
+    {
+      "datasource": "TimescaleDB-RO",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 4,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "body": "确认执行本次操作？",
+          "cancel": "取消",
+          "columns": {
+            "include": [
+              "name",
+              "newValue"
+            ],
+            "name": "字段",
+            "newValue": "值"
+          },
+          "confirm": "确认",
+          "elementDisplayMode": "all",
+          "title": "确认提交"
+        },
+        "elementValueChanged": "if (context.element.id === 'metric_pick') {\n  const v = String(context.element.value ?? '').trim();\n  context.grafana.locationService.partial({'var-edit_metric': v}, true);\n  const syncObj = {};\n  syncObj['metric_pick'] = v;\n  context.panel.setFormValue(syncObj);\n  if (!v) {\n    context.panel.setFormValue({ metric: '', display_name: '', unit: '', visible: true, alarm_low: null, alarm_high: null });\n  }\n  const focusPrimaryField = () => {\n    if (typeof document === 'undefined') return;\n    const selectors = [\n      'input[name=\"metric\"]',\n      'textarea[name=\"metric\"]',\n      'input[id=\"metric\"]',\n      '[aria-label=\"metric\"]',\n      '[data-testid*=\"metric\"] input',\n    ];\n    for (const selector of selectors) {\n      const el = document.querySelector(selector);\n      if (el && typeof el.focus === 'function') {\n        el.focus();\n        if (typeof el.select === 'function') {\n          el.select();\n        }\n        break;\n      }\n    }\n  };\n  setTimeout(focusPrimaryField, 0);\n  setTimeout(focusPrimaryField, 120);\n}\n",
+        "elements": [
+          {
+            "fieldName": "metric_pick",
+            "id": "metric_pick",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "B",
+              "value": "value"
+            },
+            "title": "选择已有指标",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "metric",
+            "id": "metric",
+            "queryField": {
+              "label": "A:metric",
+              "refId": "A",
+              "value": "metric"
+            },
+            "title": "metric（可新建）",
+            "type": "string",
+            "value": ""
+          },
+          {
+            "fieldName": "display_name",
+            "id": "display_name",
+            "queryField": {
+              "label": "A:display_name",
+              "refId": "A",
+              "value": "display_name"
+            },
+            "title": "display_name",
+            "type": "string",
+            "value": ""
+          },
+          {
+            "fieldName": "unit",
+            "id": "unit",
+            "queryField": {
+              "label": "A:unit",
+              "refId": "A",
+              "value": "unit"
+            },
+            "title": "unit",
+            "type": "string",
+            "value": ""
+          },
+          {
+            "fieldName": "visible",
+            "id": "visible",
+            "queryField": {
+              "label": "A:visible",
+              "refId": "A",
+              "value": "visible"
+            },
+            "title": "visible（监控页展示）",
+            "type": "boolean",
+            "value": true
+          },
+          {
+            "fieldName": "alarm_low",
+            "id": "alarm_low",
+            "queryField": {
+              "label": "A:alarm_low",
+              "refId": "A",
+              "value": "alarm_low"
+            },
+            "title": "alarm_low（告警下限）",
+            "type": "number",
+            "value": null
+          },
+          {
+            "fieldName": "alarm_high",
+            "id": "alarm_high",
+            "queryField": {
+              "label": "A:alarm_high",
+              "refId": "A",
+              "value": "alarm_high"
+            },
+            "title": "alarm_high（告警上限）",
+            "type": "number",
+            "value": null
+          }
+        ],
+        "initial": {
+          "code": "const autoId = String('${row_delete_metric}' ?? '').trim();\nif (!autoId) return;\nconst guardStore = (typeof window !== 'undefined')\n  ? (window.__iotAdminDeleteGuards = window.__iotAdminDeleteGuards || {})\n  : null;\nconst guardKey = 'row_delete_metric:' + autoId;\nif (guardStore && guardStore[guardKey]) return;\nif (guardStore) {\n  guardStore[guardKey] = true;\n}\nconst releaseGuard = () => {\n  if (guardStore) {\n    delete guardStore[guardKey];\n  }\n};\nreturn (async () => {\n  try {\n    if (!confirm('确认删除指标 ' + autoId + '？')) {\n      context.grafana.locationService.partial({'var-row_delete_metric': '', 'var-edit_metric': ''}, true);\n      return;\n    }\n    context.grafana.locationService.partial({'var-row_delete_metric': ''}, true);\n    const dsName = context.panel.options?.update?.datasource || 'TimescaleDB-Admin';\n    const dsInfo = await context.grafana.backendService.get('/api/datasources/name/' + encodeURIComponent(dsName));\n    const uid = dsInfo?.uid;\n    if (!uid) throw new Error('未找到数据源: ' + dsName);\n    const rawSql = \"SELECT * FROM admin_api.delete_metric(lower(${row_delete_metric:sqlstring}));\";\n    const body = {\n      queries: [{\n        refId: 'A',\n        datasource: { uid },\n        editorMode: 'code',\n        format: 'table',\n        rawQuery: true,\n        rawSql,\n        sql: { columns: [{ parameters: [], type: 'function' }], groupBy: [{ property: { type: 'string' }, type: 'groupBy' }], limit: 50 }\n      }],\n      from: 'now-5m',\n      to: 'now'\n    };\n    const queryResp = await context.grafana.backendService.post('/api/ds/query', body);\n    const result = queryResp?.results?.A;\n    if (result?.error) throw new Error(result.error);\n    const frame = result?.frames?.[0];\n    const row = {};\n    if (frame?.schema?.fields && Array.isArray(frame?.data?.values)) {\n      frame.schema.fields.forEach((f, idx) => { row[f.name] = frame.data.values[idx]?.[0]; });\n    }\n    const objectId = String(row.metric ?? autoId).trim();\n    const detail = '级联数量 0';\n    const nowIso = new Date().toISOString();\n    context.grafana.notifySuccess(['删除成功', '🗑 已删除指标 ' + objectId + '，' + detail]);\n    context.grafana.locationService.partial({'var-row_delete_metric': '', 'var-edit_metric': '', 'var-last_metric_action': '🗑 已删除指标 ' + objectId + '，' + detail, 'var-last_metric_action_ts': nowIso}, true);\n  try {\n  if (typeof context.grafana.refresh === 'function') {\n    context.grafana.refresh();\n  }\n} catch (e) {}\n\n  } catch (error) {\n    context.grafana.locationService.partial({'var-row_delete_metric': '', 'var-edit_metric': ''}, true);\n    const msg = error?.message || error?.data?.message || error?.data?.results?.A?.error || error?.statusText || (typeof error === 'string' ? error : '');\n    context.grafana.notifyError(['删除失败', msg || '请检查关联关系或输入']);\n  } finally {\n    releaseGuard();\n  }\n})();\n",
+          "contentType": "application/json",
+          "getPayload": "return { rawSql: '', format: 'table' };",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "query",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "horizontal",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "single"
+        },
+        "reset": {
+          "icon": "process",
+          "text": "重置",
+          "variant": "secondary"
+        },
+        "resetAction": {
+          "code": "context.panel.initialRequest();",
+          "confirm": false,
+          "getPayload": "return {};",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "icon": "save",
+          "text": "提交",
+          "variant": "primary"
+        },
+        "sync": true,
+        "update": {
+          "code": "const ok = context.panel.response && context.panel.response.state === 'Done';\nif (ok) {\n  const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\n  const objectId = String(get('metric') ?? '').trim();\n  const nowIso = new Date().toISOString();\n  const msg = '💾 已保存指标 ' + (objectId || '-');\n  context.grafana.notifySuccess(['成功', msg]);\n  context.grafana.locationService.partial({\n    'var-last_metric_action': msg,\n    'var-last_metric_action_ts': nowIso,\n    'var-row_delete_metric': '',\n    'var-edit_metric': objectId || ''\n  }, true);\n\nlet refreshed = false;\ntry {\n  if (typeof context.grafana.refresh === 'function') {\n    context.grafana.refresh();\n    refreshed = true;\n  }\n} catch (e) {}\n\nsetTimeout(() => {\n  try {\n    if (context.grafana.locationService && typeof context.grafana.locationService.reload === 'function') {\n      context.grafana.locationService.reload();\n    } else if (!refreshed && typeof window !== 'undefined' && window.location) {\n      window.location.reload();\n    }\n  } catch (e) {}\n}, 100);\n\n} else {\n  context.grafana.notifyError(['失败', '请检查输入']);\n}\n",
+          "confirm": true,
+          "contentType": "application/json",
+          "datasource": "TimescaleDB-Admin",
+          "getPayload": "const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\nconst esc = (v) => String(v ?? '').trim().replace(/'/g, \"''\");\nconst toNumOrNull = (v) => {\n  if (v === null || v === undefined || v === '') return 'NULL';\n  const n = Number(v);\n  if (!Number.isFinite(n)) throw new Error('告警上下限必须是数字');\n  return String(n);\n};\nconst metric = esc(get('metric')).toLowerCase();\nconst display_name = esc(get('display_name'));\nif (!metric || !display_name) throw new Error('metric 与 display_name 必填');\nconst u = String(get('unit') ?? '').trim();\nconst visibleSql = get('visible') ? 'true' : 'false';\nconst alarmLowSql = toNumOrNull(get('alarm_low'));\nconst alarmHighSql = toNumOrNull(get('alarm_high'));\nif (alarmLowSql !== 'NULL' && alarmHighSql !== 'NULL' && Number(alarmLowSql) > Number(alarmHighSql)) throw new Error('alarm_low 不能大于 alarm_high');\nreturn { metric, display_name, unit_sql: u ? `'${esc(u)}'` : 'NULL', visible_sql: visibleSql, alarm_low_sql: alarmLowSql, alarm_high_sql: alarmHighSql };\n",
+          "method": "datasource",
+          "payload": {
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT * FROM admin_api.upsert_metric('${payload.metric}', '${payload.display_name}', ${payload.unit_sql}, ${payload.alarm_low_sql}, ${payload.alarm_high_sql}, ${payload.visible_sql});",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          },
+          "payloadMode": "custom"
+        },
+        "updateEnabled": "auto"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT metric, display_name, COALESCE(unit,'') AS unit, COALESCE(visible,true) AS visible, alarm_low, alarm_high FROM metric_dict WHERE metric = ${edit_metric:sqlstring} LIMIT 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        },
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '（新建）' AS label UNION ALL SELECT metric AS value, metric AS label FROM metric_dict ORDER BY label;",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        }
+      ],
+      "title": "指标编辑（新增/修改）",
+      "type": "volkovlabs-form-panel"
+    },
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "id": 8,
+      "options": {
+        "content": "> **操作状态（指标）**：${last_metric_action}  `${last_metric_action_ts}`",
+        "mode": "markdown"
+      },
+      "title": "操作状态",
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "iot",
+    "admin",
+    "metric"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": "TimescaleDB-RO",
+        "definition": "SELECT metric FROM metric_dict ORDER BY metric;",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "edit_metric",
+        "options": [],
+        "query": "SELECT metric FROM metric_dict ORDER BY metric;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "last_metric_action",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "last_metric_action_ts",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "row_delete_metric",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "IoT V1 Admin · Metric Dictionary",
+  "uid": "iot-v1-admin-metric",
+  "version": 27
+}

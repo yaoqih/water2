@@ -1,0 +1,151 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg18
+    container_name: ${STACK_NAME:-iot}-timescaledb
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=timescaledb
+      - -c
+      - max_connections=60
+      - -c
+      - shared_buffers=384MB
+      - -c
+      - wal_compression=on
+      - -c
+      - track_io_timing=on
+      - -c
+      - statement_timeout=30s
+      - -c
+      - max_locks_per_transaction=1024
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgres/certs/server.crt
+      - -c
+      - ssl_key_file=/etc/postgres/certs/server.key
+    ports:
+      - "${POSTGRES_BIND_IP:-0.0.0.0}:${POSTGRES_PORT}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+      - ./postgres/certs:/etc/postgres/certs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - iot_net
+
+  emqx:
+    image: emqx/emqx:latest
+    container_name: ${STACK_NAME:-iot}-emqx
+    hostname: ${STACK_NAME:-iot}-emqx
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      EMQX_NODE__NAME: emqx@${STACK_NAME:-iot}-emqx
+      EMQX_DASHBOARD__DEFAULT_USERNAME: ${EMQX_DASHBOARD_USER}
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD}
+      EMQX_ALLOW_ANONYMOUS: ${EMQX_ALLOW_ANONYMOUS:-false}
+
+      EMQX_DASHBOARD__LISTENERS__HTTP__BIND: "0.0.0.0:18083"
+      EMQX_DASHBOARD__LISTENERS__HTTPS__BIND: "0.0.0.0:18084"
+      EMQX_DASHBOARD__LISTENERS__HTTPS__SSL_OPTIONS__CERTFILE: /opt/emqx/etc/certs/server-cert.pem
+      EMQX_DASHBOARD__LISTENERS__HTTPS__SSL_OPTIONS__KEYFILE: /opt/emqx/etc/certs/server-key.pem
+      EMQX_DASHBOARD__LISTENERS__HTTPS__SSL_OPTIONS__VERIFY: verify_none
+      EMQX_DASHBOARD__LISTENERS__HTTPS__SSL_OPTIONS__FAIL_IF_NO_PEER_CERT: "false"
+
+      EMQX_LISTENERS__SSL__DEFAULT__BIND: "0.0.0.0:8883"
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CERTFILE: /opt/emqx/etc/certs/server-cert.pem
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__KEYFILE: /opt/emqx/etc/certs/server-key.pem
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__VERIFY: verify_none
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__FAIL_IF_NO_PEER_CERT: "false"
+      EMQX_LISTENERS__TCP__DEFAULT__BIND: "0.0.0.0:1883"
+    ports:
+      - "${EMQX_MQTT_TCP_BIND_IP:-0.0.0.0}:${EMQX_MQTT_TCP_PORT:-1883}:1883"
+      - "${EMQX_MQTT_BIND_IP:-0.0.0.0}:${EMQX_MQTT_PORT:-8883}:8883"
+      - "${EMQX_DASHBOARD_HTTP_BIND_IP:-127.0.0.1}:${EMQX_DASHBOARD_HTTP_PORT:-18083}:18083"
+      - "${EMQX_DASHBOARD_HTTPS_BIND_IP:-0.0.0.0}:${EMQX_DASHBOARD_HTTPS_PORT:-18084}:18084"
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+      - ./emqx/certs:/opt/emqx/etc/certs:ro
+    networks:
+      - iot_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ${STACK_NAME:-iot}-grafana
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_SERVER_PROTOCOL: https
+      GF_SERVER_CERT_FILE: /etc/grafana/certs/fullchain.pem
+      GF_SERVER_CERT_KEY: /etc/grafana/certs/privkey.pem
+      GF_SERVER_DOMAIN: ${TLS_DOMAIN}
+      GF_SERVER_ROOT_URL: https://${TLS_DOMAIN}/
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_VIEWERS_CAN_EDIT: "false"
+      GF_EXPLORE_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL: volkovlabs-form-panel
+      GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 30s
+      POSTGRES_DB: ${POSTGRES_DB}
+      GRAFANA_DB_USER: ${GRAFANA_DB_USER}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
+      GRAFANA_DB_ADMIN_USER: ${GRAFANA_DB_ADMIN_USER}
+      GRAFANA_DB_ADMIN_PASSWORD: ${GRAFANA_DB_ADMIN_PASSWORD}
+      GRAFANA_DB_RO_USER: ${GRAFANA_DB_RO_USER}
+      GRAFANA_DB_RO_PASSWORD: ${GRAFANA_DB_RO_PASSWORD}
+    ports:
+      - "${GRAFANA_BIND_IP:-0.0.0.0}:${GRAFANA_PORT:-443}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/certs:/etc/grafana/certs:ro
+    networks:
+      - iot_net
+
+  postgrest:
+    image: postgrest/postgrest:latest
+    container_name: ${STACK_NAME:-iot}-postgrest
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://${POSTGREST_DB_USER}:${POSTGREST_DB_PASSWORD}@timescaledb:5432/${POSTGRES_DB}
+      PGRST_DB_SCHEMAS: admin_api
+      PGRST_DB_ANON_ROLE: iot_api_editor
+      PGRST_DB_PRE_REQUEST: admin_api.enforce_postgrest_token
+      PGRST_APP_SETTINGS_ADMIN_TOKEN: ${POSTGREST_ADMIN_TOKEN}
+      PGRST_OPENAPI_MODE: follow-privileges
+      PGRST_DB_CHANNEL_ENABLED: "false"
+      PGRST_SERVER_PORT: 3000
+    ports:
+      - "${POSTGREST_BIND_IP:-127.0.0.1}:${POSTGREST_PORT:-3001}:3000"
+    networks:
+      - iot_net
+
+volumes:
+  pg_data:
+  emqx_data:
+  emqx_log:
+  grafana_data:
+
+networks:
+  iot_net:
+    driver: bridge

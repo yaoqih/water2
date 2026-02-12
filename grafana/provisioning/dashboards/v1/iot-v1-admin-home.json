@@ -1,0 +1,461 @@
+{
+  "id": null,
+  "uid": "iot-v1-admin-home",
+  "title": "IoT V1 Admin · Control Home",
+  "tags": [
+    "iot",
+    "admin",
+    "home"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 9,
+  "refresh": "30s",
+  "editable": true,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "导航",
+      "type": "text",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "libraryPanel": {
+        "name": "IoT Admin Navigation",
+        "uid": "lib_iot_admin_nav"
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "[🏠 总览](/d/iot-v1-admin-home) · [🏭 厂站](/d/iot-v1-admin-plant) · [📍 点位](/d/iot-v1-admin-point) · [📟 设备](/d/iot-v1-admin-device) · [📚 指标](/d/iot-v1-admin-metric) · [🧾 导出](/d/iot-v1-admin-export) · [📈 监测大屏](/d/iot-v1-plant-monitor)"
+      }
+    },
+    {
+      "id": 20,
+      "title": "控制平面总览",
+      "type": "text",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**当前页用途**：快速看系统规模、在线健康、审计变化与设备连接状态。\n\n- 先看上方 KPI；再看中间审计趋势；最后在底部定位离线设备。\n- 右上角时间范围会联动审计趋势和审计列表。"
+      }
+    },
+    {
+      "id": 2,
+      "title": "🏭 厂站总数",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT plant_count::double precision AS value FROM admin_api.v_control_home;"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "title": "📍 点位总数",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 5
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT point_count::double precision AS value FROM admin_api.v_control_home;"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "title": "📟 设备总数",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 5
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT device_count::double precision AS value FROM admin_api.v_control_home;"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "title": "🟢 在线设备(5m)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 5
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT online_device_count::double precision AS value FROM admin_api.v_control_home;"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "title": "📶 在线率(5m)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 5
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN device_count = 0 THEN 0\n             ELSE online_device_count::double precision / device_count\n        END AS value\nFROM admin_api.v_control_home;"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.6
+              },
+              {
+                "color": "green",
+                "value": 0.85
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "🧾 24h审计条数",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 5
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT audit_24h_count::double precision AS value FROM admin_api.v_control_home;"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "title": "✅ 启用设备",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 5
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT enabled_device_count::double precision AS value FROM admin_api.v_control_home;"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 9,
+      "title": "⏸️ 停用设备",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 5
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT disabled_device_count::double precision AS value FROM admin_api.v_control_home;"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 11,
+      "title": "📈 审计趋势（按小时）",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(created_at, '1h'),\n       COUNT(*)::double precision AS audit_count\nFROM admin_api.v_audit_log\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1;"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "auto",
+            "spanNulls": true
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "title": "🕒 最近审计（100条）",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT created_at,\n       actor,\n       action,\n       object_type,\n       object_id\nFROM admin_api.v_audit_log\nORDER BY created_at DESC\nLIMIT 100;"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "🔌 设备在线状态（按最近心跳）",
+      "type": "table",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "datasource": "TimescaleDB-RO",
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT device_id,\n       plant_id,\n       point_id,\n       enabled,\n       CASE\n         WHEN enabled AND (last_seen_at IS NULL OR last_seen_at < now() - interval '5 minutes') THEN 'offline'\n         WHEN NOT enabled THEN 'disabled'\n         ELSE 'online'\n       END AS status,\n       last_seen_at,\n       EXTRACT(EPOCH FROM (now() - COALESCE(last_seen_at, created_at)))::bigint AS silence_sec,\n       report_interval_sec,\n       align_mode,\n       telemetry_topic\nFROM admin_api.v_device_conn_profile\nORDER BY CASE\n           WHEN enabled AND (last_seen_at IS NULL OR last_seen_at < now() - interval '5 minutes') THEN 0\n           WHEN NOT enabled THEN 1\n           ELSE 2\n         END,\n         last_seen_at ASC NULLS FIRST,\n         device_id\nLIMIT 200;"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,509 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "libraryPanel": {
+        "name": "IoT Admin Navigation",
+        "uid": "lib_iot_admin_nav"
+      },
+      "options": {
+        "content": "[🏠 总览](/d/iot-v1-admin-home) · [🏭 厂站](/d/iot-v1-admin-plant) · [📍 点位](/d/iot-v1-admin-point) · [📟 设备](/d/iot-v1-admin-device) · [📚 指标](/d/iot-v1-admin-metric)",
+        "mode": "markdown"
+      },
+      "title": "导航",
+      "type": "text"
+    },
+    {
+      "datasource": "TimescaleDB-RO",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "edit"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "编辑",
+                    "url": "/d/iot-v1-admin-device?var-edit_device_id=${__data.fields.device_id:percentencode}"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "编辑"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "delete"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "删除",
+                    "url": "/d/iot-v1-admin-device?var-edit_device_id=${__data.fields.device_id:percentencode}&var-row_delete_device_id=${__data.fields.device_id:percentencode}"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "删除"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 3,
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT device_id,\n       plant_id,\n       point_id,\n       telemetry_topic,\n       cmd_topic_pattern,\n       expected_client_id,\n       report_interval_sec,\n       align_mode,\n       enabled,\n       last_seen_at,\n       created_at,\n       '编辑' AS edit,\n       '删除' AS delete\nFROM admin_api.v_device_conn_profile\nORDER BY created_at DESC\nLIMIT 300;\n",
+          "refId": "A"
+        }
+      ],
+      "title": "设备列表（含连接档案，行内编辑/删除）",
+      "type": "table"
+    },
+    {
+      "datasource": "TimescaleDB-RO",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 4,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "body": "确认执行本次操作？",
+          "cancel": "取消",
+          "columns": {
+            "include": [
+              "name",
+              "newValue"
+            ],
+            "name": "字段",
+            "newValue": "值"
+          },
+          "confirm": "确认",
+          "elementDisplayMode": "all",
+          "title": "确认提交"
+        },
+        "elementValueChanged": "if (context.element.id === 'device_pick') {\n  const v = String(context.element.value ?? '').trim();\n  context.grafana.locationService.partial({'var-edit_device_id': v}, true);\n  const syncObj = {};\n  syncObj['device_pick'] = v;\n  context.panel.setFormValue(syncObj);\n  if (!v) {\n    context.panel.setFormValue({ device_id: '', report_interval_sec: 60, align_mode: 'floor', enabled: true });\n  }\n  const focusPrimaryField = () => {\n    if (typeof document === 'undefined') return;\n    const selectors = [\n      'input[name=\"device_id\"]',\n      'textarea[name=\"device_id\"]',\n      'input[id=\"device_id\"]',\n      '[aria-label=\"device_id\"]',\n      '[data-testid*=\"device_id\"] input',\n    ];\n    for (const selector of selectors) {\n      const el = document.querySelector(selector);\n      if (el && typeof el.focus === 'function') {\n        el.focus();\n        if (typeof el.select === 'function') {\n          el.select();\n        }\n        break;\n      }\n    }\n  };\n  setTimeout(focusPrimaryField, 0);\n  setTimeout(focusPrimaryField, 120);\n}\n",
+        "elements": [
+          {
+            "fieldName": "device_pick",
+            "id": "device_pick",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "B",
+              "value": "value"
+            },
+            "title": "选择已有设备",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "device_id",
+            "id": "device_id",
+            "queryField": {
+              "label": "A:device_id",
+              "refId": "A",
+              "value": "device_id"
+            },
+            "title": "device_id（可新建）",
+            "type": "string",
+            "value": ""
+          },
+          {
+            "fieldName": "point_id",
+            "id": "point_id",
+            "options": [],
+            "optionsSource": "Query",
+            "queryField": {
+              "label": "A:point_id",
+              "refId": "A",
+              "value": "point_id"
+            },
+            "queryOptions": {
+              "label": "label",
+              "source": "C",
+              "value": "value"
+            },
+            "title": "point_id",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "report_interval_sec",
+            "id": "report_interval_sec",
+            "queryField": {
+              "label": "A:report_interval_sec",
+              "refId": "A",
+              "value": "report_interval_sec"
+            },
+            "title": "report_interval_sec",
+            "type": "number",
+            "value": 60
+          },
+          {
+            "fieldName": "align_mode",
+            "id": "align_mode",
+            "options": [
+              {
+                "label": "floor",
+                "value": "floor"
+              },
+              {
+                "label": "round",
+                "value": "round"
+              }
+            ],
+            "queryField": {
+              "label": "A:align_mode",
+              "refId": "A",
+              "value": "align_mode"
+            },
+            "title": "align_mode",
+            "type": "select",
+            "value": "floor"
+          },
+          {
+            "fieldName": "enabled",
+            "id": "enabled",
+            "queryField": {
+              "label": "A:enabled",
+              "refId": "A",
+              "value": "enabled"
+            },
+            "title": "enabled",
+            "type": "boolean",
+            "value": true
+          }
+        ],
+        "initial": {
+          "code": "const autoId = String('${row_delete_device_id}' ?? '').trim();\nif (!autoId) return;\nconst guardStore = (typeof window !== 'undefined')\n  ? (window.__iotAdminDeleteGuards = window.__iotAdminDeleteGuards || {})\n  : null;\nconst guardKey = 'row_delete_device_id:' + autoId;\nif (guardStore && guardStore[guardKey]) return;\nif (guardStore) {\n  guardStore[guardKey] = true;\n}\nconst releaseGuard = () => {\n  if (guardStore) {\n    delete guardStore[guardKey];\n  }\n};\nreturn (async () => {\n  try {\n    if (!confirm('确认删除设备 ' + autoId + '？')) {\n      context.grafana.locationService.partial({'var-row_delete_device_id': '', 'var-edit_device_id': ''}, true);\n      return;\n    }\n    context.grafana.locationService.partial({'var-row_delete_device_id': ''}, true);\n    const dsName = context.panel.options?.update?.datasource || 'TimescaleDB-Admin';\n    const dsInfo = await context.grafana.backendService.get('/api/datasources/name/' + encodeURIComponent(dsName));\n    const uid = dsInfo?.uid;\n    if (!uid) throw new Error('未找到数据源: ' + dsName);\n    const rawSql = \"SELECT * FROM admin_api.delete_device(${row_delete_device_id:sqlstring});\";\n    const body = {\n      queries: [{\n        refId: 'A',\n        datasource: { uid },\n        editorMode: 'code',\n        format: 'table',\n        rawQuery: true,\n        rawSql,\n        sql: { columns: [{ parameters: [], type: 'function' }], groupBy: [{ property: { type: 'string' }, type: 'groupBy' }], limit: 50 }\n      }],\n      from: 'now-5m',\n      to: 'now'\n    };\n    const queryResp = await context.grafana.backendService.post('/api/ds/query', body);\n    const result = queryResp?.results?.A;\n    if (result?.error) throw new Error(result.error);\n    const frame = result?.frames?.[0];\n    const row = {};\n    if (frame?.schema?.fields && Array.isArray(frame?.data?.values)) {\n      frame.schema.fields.forEach((f, idx) => { row[f.name] = frame.data.values[idx]?.[0]; });\n    }\n    const objectId = String(row.device_id ?? autoId).trim();\n    const detail = '级联数量 0';\n    const nowIso = new Date().toISOString();\n    context.grafana.notifySuccess(['删除成功', '🗑 已删除设备 ' + objectId + '，' + detail]);\n    context.grafana.locationService.partial({'var-row_delete_device_id': '', 'var-edit_device_id': '', 'var-last_device_action': '🗑 已删除设备 ' + objectId + '，' + detail, 'var-last_device_action_ts': nowIso}, true);\n  try {\n  if (typeof context.grafana.refresh === 'function') {\n    context.grafana.refresh();\n  }\n} catch (e) {}\n\n  } catch (error) {\n    context.grafana.locationService.partial({'var-row_delete_device_id': '', 'var-edit_device_id': ''}, true);\n    const msg = error?.message || error?.data?.message || error?.data?.results?.A?.error || error?.statusText || (typeof error === 'string' ? error : '');\n    context.grafana.notifyError(['删除失败', msg || '请检查关联关系或输入']);\n  } finally {\n    releaseGuard();\n  }\n})();\n",
+          "contentType": "application/json",
+          "getPayload": "return { rawSql: '', format: 'table' };",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "query",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "horizontal",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "single"
+        },
+        "reset": {
+          "icon": "process",
+          "text": "重置",
+          "variant": "secondary"
+        },
+        "resetAction": {
+          "code": "context.panel.initialRequest();",
+          "confirm": false,
+          "getPayload": "return {};",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "icon": "save",
+          "text": "提交",
+          "variant": "primary"
+        },
+        "sync": true,
+        "update": {
+          "code": "const ok = context.panel.response && context.panel.response.state === 'Done';\nif (ok) {\n  const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\n  const objectId = String(get('device_id') ?? '').trim();\n  const nowIso = new Date().toISOString();\n  const msg = '💾 已保存设备 ' + (objectId || '-');\n  context.grafana.notifySuccess(['成功', msg]);\n  context.grafana.locationService.partial({\n    'var-last_device_action': msg,\n    'var-last_device_action_ts': nowIso,\n    'var-row_delete_device_id': '',\n    'var-edit_device_id': objectId || ''\n  }, true);\n\nlet refreshed = false;\ntry {\n  if (typeof context.grafana.refresh === 'function') {\n    context.grafana.refresh();\n    refreshed = true;\n  }\n} catch (e) {}\n\nsetTimeout(() => {\n  try {\n    if (context.grafana.locationService && typeof context.grafana.locationService.reload === 'function') {\n      context.grafana.locationService.reload();\n    } else if (!refreshed && typeof window !== 'undefined' && window.location) {\n      window.location.reload();\n    }\n  } catch (e) {}\n}, 100);\n\n} else {\n  context.grafana.notifyError(['失败', '请检查输入']);\n}\n",
+          "confirm": true,
+          "contentType": "application/json",
+          "datasource": "TimescaleDB-Admin",
+          "getPayload": "const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\nconst esc = (v) => String(v ?? '').trim().replace(/'/g, \"''\");\nconst device_id = esc(get('device_id'));\nconst point_id = esc(get('point_id'));\nif (!device_id || !point_id) throw new Error('device_id 与 point_id 必填');\nconst iv = Number(get('report_interval_sec') ?? 60);\nif (!Number.isFinite(iv) || iv < 1 || iv > 3600) throw new Error('report_interval_sec 必须在 1~3600');\nreturn {\n  device_id,\n  point_id,\n  interval_sql: String(Math.round(iv)),\n  align_mode: esc(get('align_mode') || 'floor'),\n  enabled_sql: get('enabled') ? 'true' : 'false',\n};\n",
+          "method": "datasource",
+          "payload": {
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT * FROM admin_api.upsert_device('${payload.device_id}', '${payload.point_id}', ${payload.interval_sql}, '${payload.align_mode}', ${payload.enabled_sql});",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          },
+          "payloadMode": "custom"
+        },
+        "updateEnabled": "auto"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT device_id, point_id, report_interval_sec, align_mode, enabled FROM device WHERE device_id = ${edit_device_id:sqlstring} LIMIT 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        },
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '（新建）' AS label UNION ALL SELECT device_id AS value, device_id AS label FROM device ORDER BY label;",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        },
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT pt.point_id AS value, (pt.plant_id || ' / ' || pt.point_id) AS label FROM point pt ORDER BY pt.plant_id, pt.point_id;",
+          "refId": "C",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        }
+      ],
+      "title": "设备编辑（新增/修改）",
+      "type": "volkovlabs-form-panel"
+    },
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "id": 8,
+      "options": {
+        "content": "> **操作状态（设备）**：${last_device_action}  `${last_device_action_ts}`",
+        "mode": "markdown"
+      },
+      "title": "操作状态",
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "iot",
+    "admin",
+    "device"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": "TimescaleDB-RO",
+        "definition": "SELECT device_id FROM device ORDER BY device_id;",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "edit_device_id",
+        "options": [],
+        "query": "SELECT device_id FROM device ORDER BY device_id;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "last_device_action",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "last_device_action_ts",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "row_delete_device_id",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "IoT V1 Admin · Device",
+  "uid": "iot-v1-admin-device",
+  "version": 29
+}

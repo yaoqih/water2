@@ -1,0 +1,36 @@
+apiVersion: 1
+
+deleteDatasources:
+  - name: TimescaleDB
+    orgId: 1
+
+datasources:
+  - name: TimescaleDB-RO
+    type: postgres
+    access: proxy
+    url: timescaledb:5432
+    database: ${POSTGRES_DB}
+    user: ${GRAFANA_DB_RO_USER}
+    secureJsonData:
+      password: ${GRAFANA_DB_RO_PASSWORD}
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: require
+      postgresVersion: 1800
+      timescaledb: true
+    isDefault: true
+    editable: true
+  - name: TimescaleDB-Admin
+    type: postgres
+    access: proxy
+    url: timescaledb:5432
+    database: ${POSTGRES_DB}
+    user: ${GRAFANA_DB_ADMIN_USER}
+    secureJsonData:
+      password: ${GRAFANA_DB_ADMIN_PASSWORD}
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: require
+      postgresVersion: 1800
+      timescaledb: true
+    editable: true

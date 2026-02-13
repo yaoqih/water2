@@ -39,9 +39,10 @@
   - 字段：`display_name`,`unit`,`visible`,`alarm_low`,`alarm_high`
   - 说明：`visible` 默认 `true`，用于控制监控大屏是否展示该指标
   - 默认阈值基线：
-    - 参考 `GB 3838-2002`（地表水 III 类）：`ph`、`dissolved_oxygen`、`cod`、`nh3n/amnitro`
+    - 初始化仅在 `metric_dict` 为空时执行，不覆盖已有字典数据
+    - 参考 `GB 3838-2002`（地表水 III 类）：`ph`、`dissolvedOxygen`、`cod`、`amnitro`
     - 参考 `GB 18918-2002`（城镇污水处理厂一级 A）：`ss`
-    - `pow/rssi/water_t/water_ec/turbidity/temperature` 使用工程告警范围（用于设备健康与传感器异常检测）
+    - `watetT/waterEC/turbidity/temperature` 使用工程告警范围（用于水质监测与设备健康异常检测）
 
 ### 3.2 数据表
 
@@ -107,6 +108,8 @@
   - `admin_api.delete_metric(p_metric)`
 - Export：
   - `admin_api.export_metric_rows(p_fields, p_from, p_to, p_plant_id, p_point_id, p_device_id, p_metric, p_point_type, p_topic, p_limit)`
+  - `p_plant_id/p_point_id/p_device_id/p_metric/p_point_type/p_topic` 支持逗号分隔多值
+  - `p_metric/p_point_type` 会做小写归一化；`point_type` 仅允许 `all/inlet/outlet`
   - `p_limit <= 0` 视为“不限”（由后端内部按安全策略限流）
 
 删除语义：

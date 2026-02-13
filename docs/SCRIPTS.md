@@ -17,7 +17,7 @@ Admin dashboard 生成入口：`./scripts/generate_admin_dashboards.sh`
 # 清理卷并重建
 ./scripts/stack.sh up --env test --fresh
 
-# 仅应用运行期配置（Grafana + Grafana ACL + EMQX）
+# 应用运行期配置并收敛 schema（Grafana + Grafana ACL + EMQX + PostgREST）
 ./scripts/stack.sh configure --env test
 
 # 单独生成/校验 Admin CRUD dashboards（Jsonnet，含 Plant Monitor 导航同步）
@@ -84,10 +84,10 @@ curl -k https://127.0.0.1:2443/api/health
 
 - `db query error: pq: column md.visible does not exist`
   - 说明数据库尚未应用 `metric_dict.visible` 迁移（代码已升级、库未升级）。
-  - 执行：`./scripts/stack.sh configure --env test`（prod 用 `--env prod`）重放 `001_iot_init.sql`。
+  - 执行：`./scripts/stack.sh configure --env test`（prod 用 `--env prod`）重放 `001_iot_init.sql`（`metric_dict` 仅空表初始化，不覆盖已有字典）。
   - 如需立即修复，可手工执行：
     - `ALTER TABLE public.metric_dict ADD COLUMN IF NOT EXISTS visible boolean NOT NULL DEFAULT true;`
-    - `UPDATE public.metric_dict SET visible = false WHERE metric IN ('pow','rssi');`
+    - `UPDATE public.metric_dict SET visible = true WHERE visible IS NULL;`
 
 - `Failed to get EMQX token`
   - 检查 `env/<env>.env` 中 `EMQX_DASHBOARD_USER/EMQX_DASHBOARD_PASSWORD`。

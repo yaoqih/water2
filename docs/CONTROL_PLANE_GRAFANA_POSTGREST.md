@@ -55,15 +55,15 @@ Grafana 页面 UID：
 
 6) `iot-v1-admin-export`（Export）
 - 字段字典（含关联字段）统一来自 `admin_api.v_metric_export_fields`
-- 导出预览支持按字段筛选（含 `plant/point/device/metric/unit/value_num`）
-- 下载导出走后端固定 RPC：`admin_api.export_metric_rows(...)`（字段白名单 + 参数化过滤 + 服务端限流）
+- 导出预览支持按字段筛选（`plant/point/device/metric/point_type/topic` 支持多选）
+- 下载导出走后端固定 RPC：`admin_api.export_metric_rows(...)`（字段白名单 + 参数化过滤 + 逗号分隔多值过滤 + 服务端限流）
 - 导出行数支持“不限”（由后端内部按安全策略限流）
 
 7) `iot-v1-plant-monitor`（Plant Monitor）
-- 左上角厂站选择，页面所有查询按 `plant_id` 过滤
+- 左上角厂站选择显示 `plant_name`（实际值为 `plant_id`），页面所有查询按 `plant_id` 过滤
 - 顶部展示厂站实时指标统计
-- 中部支持小时/日/周/月周期切换
-- 左侧指标均值线列表 + 右侧入口/出口同图对比与蜡烛图
+- 中部支持 5 分钟/小时/天/月周期切换
+- 左侧指标均值线分页列表（每页最多 5 项） + 右侧入口/出口同图对比与蜡烛图
 - 底部分列显示入口/出口告警信息
 
 > 页面顶部均提供互相跳转导航。
@@ -174,6 +174,7 @@ Grafana 页面 UID：
 导出接口说明（推荐）：
 
 - Grafana 导出：调用 `admin_api.export_metric_rows(...)`（服务端白名单/限流）。
+- Grafana 导出表单筛选支持多选，后端按逗号分隔多值匹配（`point_type` 允许 `all/inlet/outlet`）。
 - `p_limit <= 0` 视为“不限”（由后端内部按安全策略限流）。
 - URL 基础：`/v_metric_export`（用于直接 API 导出）
 - 字段选择：`select=ingest_ts,plant_id,plant_name,device_id,metric,value_num,unit`
@@ -258,7 +259,7 @@ curl -sS \
 
 ## 8. 运行与变更注意事项
 
-- `./scripts/stack.sh configure --env <prod|test>` 会自动重放 `postgres/initdb/001_iot_init.sql` 与 `postgres/initdb/002_admin_api.sql`，并自动重启 `postgrest` 刷新 schema cache。
+- `./scripts/stack.sh configure --env <prod|test>` 会自动重放 `postgres/initdb/001_iot_init.sql` 与 `postgres/initdb/002_admin_api.sql`，并自动重启 `postgrest` 刷新 schema cache；`metric_dict` 种子仅在空表时初始化，不覆盖已有字典数据。
 - 当出现 `relation "admin_api.v_metric_export" does not exist` / `relation "admin_api.v_metric_export_fields" does not exist` 时，优先执行：
 
 ```bash

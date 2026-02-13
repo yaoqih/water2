@@ -231,12 +231,13 @@ DECLARE
   v_invalid_fields TEXT[];
   v_drop_fields TEXT[];
   v_limit INT;
-  v_plant_id TEXT;
-  v_point_id TEXT;
-  v_device_id TEXT;
-  v_metric TEXT;
-  v_point_type TEXT;
-  v_topic TEXT;
+  v_plant_ids TEXT[];
+  v_point_ids TEXT[];
+  v_device_ids TEXT[];
+  v_metrics TEXT[];
+  v_point_types TEXT[];
+  v_topics TEXT[];
+  v_invalid_point_types TEXT[];
 BEGIN
   SELECT array_agg(DISTINCT norm.f ORDER BY norm.f)
   INTO v_fields
@@ -263,16 +264,62 @@ BEGIN
     RAISE EXCEPTION 'invalid time range: p_to must be greater than p_from';
   END IF;
 
-  v_plant_id := NULLIF(trim(COALESCE(p_plant_id, '')), '');
-  v_point_id := NULLIF(trim(COALESCE(p_point_id, '')), '');
-  v_device_id := NULLIF(trim(COALESCE(p_device_id, '')), '');
-  v_metric := NULLIF(lower(trim(COALESCE(p_metric, ''))), '');
-  v_point_type := NULLIF(lower(trim(COALESCE(p_point_type, ''))), '');
-  v_topic := NULLIF(trim(COALESCE(p_topic, '')), '');
+  SELECT array_agg(DISTINCT norm.v ORDER BY norm.v)
+  INTO v_plant_ids
+  FROM (
+    SELECT trim(raw.v) AS v
+    FROM regexp_split_to_table(COALESCE(p_plant_id, ''), ',') AS raw(v)
+  ) AS norm
+  WHERE norm.v <> '';
 
-  IF v_point_type IS NOT NULL AND v_point_type NOT IN ('all', 'inlet', 'outlet') THEN
-    RAISE EXCEPTION 'invalid point_type: %', v_point_type;
+  SELECT array_agg(DISTINCT norm.v ORDER BY norm.v)
+  INTO v_point_ids
+  FROM (
+    SELECT trim(raw.v) AS v
+    FROM regexp_split_to_table(COALESCE(p_point_id, ''), ',') AS raw(v)
+  ) AS norm
+  WHERE norm.v <> '';
+
+  SELECT array_agg(DISTINCT norm.v ORDER BY norm.v)
+  INTO v_device_ids
+  FROM (
+    SELECT trim(raw.v) AS v
+    FROM regexp_split_to_table(COALESCE(p_device_id, ''), ',') AS raw(v)
+  ) AS norm
+  WHERE norm.v <> '';
+
+  SELECT array_agg(DISTINCT norm.v ORDER BY norm.v)
+  INTO v_metrics
+  FROM (
+    SELECT lower(trim(raw.v)) AS v
+    FROM regexp_split_to_table(COALESCE(p_metric, ''), ',') AS raw(v)
+  ) AS norm
+  WHERE norm.v <> '';
+
+  SELECT array_agg(DISTINCT norm.v ORDER BY norm.v)
+  INTO v_point_types
+  FROM (
+    SELECT lower(trim(raw.v)) AS v
+    FROM regexp_split_to_table(COALESCE(p_point_type, ''), ',') AS raw(v)
+  ) AS norm
+  WHERE norm.v <> '';
+
+  SELECT array_agg(v ORDER BY v)
+  INTO v_invalid_point_types
+  FROM unnest(COALESCE(v_point_types, ARRAY[]::TEXT[])) AS t(v)
+  WHERE v NOT IN ('all', 'inlet', 'outlet');
+
+  IF v_invalid_point_types IS NOT NULL THEN
+    RAISE EXCEPTION 'invalid point_type: %', array_to_string(v_invalid_point_types, ',');
   END IF;
+
+  SELECT array_agg(DISTINCT norm.v ORDER BY norm.v)
+  INTO v_topics
+  FROM (
+    SELECT trim(raw.v) AS v
+    FROM regexp_split_to_table(COALESCE(p_topic, ''), ',') AS raw(v)
+  ) AS norm
+  WHERE norm.v <> '';
 
   v_limit := COALESCE(p_limit, 1000);
   IF v_limit <= 0 THEN
@@ -290,12 +337,12 @@ BEGIN
   FROM admin_api.v_metric_export ve
   WHERE (p_from IS NULL OR ve.ingest_ts >= p_from)
     AND (p_to IS NULL OR ve.ingest_ts < p_to)
-    AND (v_plant_id IS NULL OR ve.plant_id = v_plant_id)
-    AND (v_point_id IS NULL OR ve.point_id = v_point_id)
-    AND (v_device_id IS NULL OR ve.device_id = v_device_id)
-    AND (v_metric IS NULL OR ve.metric = v_metric)
-    AND (v_point_type IS NULL OR v_point_type = 'all' OR ve.point_type = v_point_type)
-    AND (v_topic IS NULL OR ve.topic = v_topic)
+    AND (v_plant_ids IS NULL OR ve.plant_id = ANY(v_plant_ids))
+    AND (v_point_ids IS NULL OR ve.point_id = ANY(v_point_ids))
+    AND (v_device_ids IS NULL OR ve.device_id = ANY(v_device_ids))
+    AND (v_metrics IS NULL OR ve.metric = ANY(v_metrics))
+    AND (v_point_types IS NULL OR 'all' = ANY(v_point_types) OR ve.point_type = ANY(v_point_types))
+    AND (v_topics IS NULL OR ve.topic = ANY(v_topics))
   ORDER BY ve.ingest_ts DESC
   LIMIT v_limit;
 END;

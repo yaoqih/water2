@@ -48,25 +48,21 @@ ALTER TABLE metric_dict
 -- - GB 3838-2002 (III class): pH 6~9, DO >= 5 mg/L, COD <= 20 mg/L, NH3-N <= 1.0 mg/L
 -- - GB 18918-2002 (Class 1-A): SS <= 10 mg/L
 -- - Remaining indicators use conservative engineering ranges for device/sensor health alerts.
-INSERT INTO metric_dict(metric, display_name, unit, visible, alarm_low, alarm_high) VALUES
-  ('pow', '电压', 'V', false, 3.0, 4.2),
-  ('rssi', '信号强度', 'dBm', false, -95, -45),
-  ('water_t', '水温', '°C', true, 0, 35),
-  ('water_ec', '电导率', 'uS/cm', true, 50, 2000),
-  ('amnitro', '氨氮', 'mg/L', true, 0, 1.0),
-  ('nh3n', '氨氮', 'mg/L', true, 0, 1.0),
-  ('ph', '酸碱度', 'pH', true, 6, 9),
-  ('dissolved_oxygen', '溶解氧', 'mg/L', true, 5, 14.6),
-  ('turbidity', '浊度', 'NTU', true, 0, 10),
-  ('cod', '化学需氧量', 'mg/L', true, 0, 20),
-  ('ss', '悬浮物浓度', 'mg/L', true, 0, 10),
-  ('temperature', '温度', '°C', true, -20, 60)
-ON CONFLICT (metric) DO UPDATE
-SET display_name = EXCLUDED.display_name,
-    unit = EXCLUDED.unit,
-    visible = EXCLUDED.visible,
-    alarm_low = EXCLUDED.alarm_low,
-    alarm_high = EXCLUDED.alarm_high;
+INSERT INTO metric_dict(metric, display_name, unit, visible, alarm_low, alarm_high)
+SELECT s.metric, s.display_name, s.unit, s.visible, s.alarm_low, s.alarm_high
+FROM (
+  VALUES
+    ('watetT', '水温', '°C', true, 0::double precision, 35::double precision),
+    ('waterEC', '电导率', 'uS/cm', true, 50::double precision, 2000::double precision),
+    ('amnitro', '氨氮', 'mg/L', true, 0::double precision, 1.0::double precision),
+    ('ph', '酸碱度', 'pH', true, 6::double precision, 9::double precision),
+    ('dissolvedOxygen', '溶解氧', 'mg/L', true, 5::double precision, 14.6::double precision),
+    ('turbidity', '浊度', 'NTU', true, 0::double precision, 10::double precision),
+    ('cod', '化学需氧量', 'mg/L', true, 0::double precision, 20::double precision),
+    ('ss', '悬浮物浓度', 'mg/L', true, 0::double precision, 10::double precision),
+    ('temperature', '水温2', '°C', true, -20::double precision, 60::double precision)
+) AS s(metric, display_name, unit, visible, alarm_low, alarm_high)
+WHERE NOT EXISTS (SELECT 1 FROM metric_dict);
 
 CREATE TABLE IF NOT EXISTS raw_message (
   raw_id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -76,12 +72,7 @@ CREATE TABLE IF NOT EXISTS raw_message (
   payload       JSONB NOT NULL
 );
 
--- Non-backward-compatible cleanup: remove legacy redundant identity fields.
-ALTER TABLE raw_message DROP COLUMN IF EXISTS plant_id;
-ALTER TABLE raw_message DROP COLUMN IF EXISTS point_id;
-ALTER TABLE raw_message DROP COLUMN IF EXISTS device_id;
-ALTER TABLE raw_message DROP COLUMN IF EXISTS qos;
-ALTER TABLE raw_message DROP COLUMN IF EXISTS client_id;
+
 
 CREATE INDEX IF NOT EXISTS raw_message_ts_idx
   ON raw_message (ingest_ts DESC);

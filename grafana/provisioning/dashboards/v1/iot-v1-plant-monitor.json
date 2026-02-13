@@ -196,14 +196,14 @@
             "h": 2,
             "w": 8,
             "x": 0,
-            "y": 40
+            "y": 44
          },
          "id": 115,
          "options": {
-            "content": "均值分页：第 **${mean_page}/${mean_page_total}** 页（每页 5 个指标）。[⏮ 首页](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=1) · [◀ 上一页](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_prev:percentencode}) · [下一页 ▶](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_next:percentencode}) · [末页 ⏭](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_total:percentencode})",
+            "content": "第 **${mean_page}/${mean_page_total}** 页。[⏮ 首页](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=1) · [◀ 上一页](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_prev:percentencode}) · [下一页 ▶](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_next:percentencode}) · [末页 ⏭](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_total:percentencode})",
             "mode": "markdown"
          },
-         "title": "均值分页",
+         "title": "分页",
          "type": "text"
       },
       {
@@ -291,7 +291,7 @@
             }
          ],
          "timeFrom": "now-24h",
-         "title": "${mean_metric_page:text} 均值（最近24h）",
+         "title": "${mean_metric_page:text} （最近24h）",
          "type": "timeseries"
       },
       {
@@ -303,10 +303,10 @@
          },
          "id": 16,
          "options": {
-            "content": "当前指标：**${metric:text}** ｜ 当前周期：**${agg}**\n\n[5分钟](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=5min&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [小时](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=hour&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [天](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=day&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [月](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=month&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})\n\n指标切换：${metric_switch_md:raw}",
+            "content": "当前指标：**${metric:text}** ｜ 当前周期：**${agg}**\n\n聚合周期切换：[5分钟](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=5min&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [小时](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=hour&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [天](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=day&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [月](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=month&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})\n\n指标切换：${metric_switch_md:raw}",
             "mode": "markdown"
          },
-         "title": "蜡烛图周期快捷选择",
+         "title": "蜡烛图周期指标选择",
          "type": "text"
       },
       {
@@ -667,11 +667,11 @@
             "h": 2,
             "w": 16,
             "x": 8,
-            "y": 40
+            "y": 44
          },
          "id": 15,
          "options": {
-            "content": "操作：右侧导航图**拖拽=缩小**，**双击图表=恢复到当前窗口**；蜡烛图上方可快捷切换指标与周期。注意：实时卡片按设备上报周期判断新鲜度，超过 **2 × report_interval_sec** 未收到新数据将显示 **No data**。入口/出口已拆分为两张蜡烛图，均使用真实 OHLC（开高低收），按自然周期对齐（含自然月；支持 5 分钟）。周期切换仅改变蜡烛图聚合粒度，不改变当前时间范围；时间范围导航固定使用该指标全量 ingest_ts（最小到最大）。告警信息表已删除，告警上下限通过蜡烛图叠加线和标题文本展示。下方均值小图使用分钟线，不受“周期”切换影响，并支持分页（每页 5 项）；数据范围固定为**最近24小时**。快速放大/恢复： [最近24h](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&from=now-24h&to=now) · [最近7d](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&from=now-7d&to=now) · [最近14d](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&from=now-14d&to=now) · [最近30d](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&from=now-30d&to=now)",
+            "content": "操作：右侧导航图**拖拽=缩小**，**双击图表=恢复到当前窗口**；蜡烛图上方可快捷切换指标与周期。注意：实时卡片按设备上报周期判断新鲜度，超过 **2 × report_interval_sec** 未收到新数据将显示 **No data**。",
             "mode": "markdown"
          },
          "title": "时间范围控制",
@@ -694,14 +694,14 @@
                "value": "plant_cqbb_liaoning53"
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "SELECT plant_id FROM plant ORDER BY plant_id;",
+            "definition": "SELECT p.plant_id AS __value,\n       COALESCE(NULLIF(btrim(p.plant_name), ''), p.plant_id) AS __text\nFROM plant p\nORDER BY __text;",
             "hide": 0,
             "includeAll": false,
             "label": "水厂",
             "multi": false,
             "name": "plant_id",
             "options": [ ],
-            "query": "SELECT plant_id FROM plant ORDER BY plant_id;",
+            "query": "SELECT p.plant_id AS __value,\n       COALESCE(NULLIF(btrim(p.plant_name), ''), p.plant_id) AS __text\nFROM plant p\nORDER BY __text;",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": false,
@@ -763,7 +763,7 @@
             "name": "metric",
             "options": [ ],
             "query": "SELECT md.metric AS __value, COALESCE(md.display_name, md.metric) AS __text FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL ORDER BY md.metric;",
-            "refresh": 2,
+            "refresh": 1,
             "regex": "",
             "skipUrlSync": false,
             "sort": 1,
@@ -937,7 +937,7 @@
             "definition": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), md_named AS (\n  SELECT metric,\n         metric_text,\n         COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM md_base\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM md_named\nORDER BY metric\nLIMIT 5 OFFSET (((${mean_page:sqlstring})::int - 1) * 5);",
             "hide": 2,
             "includeAll": true,
-            "multi": true,
+            "multi": false,
             "name": "mean_metric_page",
             "options": [ ],
             "query": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), md_named AS (\n  SELECT metric,\n         metric_text,\n         COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM md_base\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM md_named\nORDER BY metric\nLIMIT 5 OFFSET (((${mean_page:sqlstring})::int - 1) * 5);",
@@ -974,14 +974,14 @@
                "value": ""
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), md_named AS (\n  SELECT metric,\n         metric_text,\n         COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM md_base\n), links AS (\n  SELECT '[' || CASE WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']' ELSE metric_text END || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})' AS link\n  FROM md_named\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
+            "definition": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})' AS link\n  FROM md_base\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
             "hide": 2,
             "includeAll": false,
             "multi": false,
             "name": "metric_switch_md",
             "options": [ ],
-            "query": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), md_named AS (\n  SELECT metric,\n         metric_text,\n         COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM md_base\n), links AS (\n  SELECT '[' || CASE WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']' ELSE metric_text END || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})' AS link\n  FROM md_named\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
-            "refresh": 2,
+            "query": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})' AS link\n  FROM md_base\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
+            "refresh": 1,
             "regex": "",
             "skipUrlSync": true,
             "sort": 1,

@@ -208,6 +208,7 @@ GRANT INSERT ON TABLE public.raw_message, public.metric_sample TO ${EMQX_TS_DB_U
 GRANT UPDATE (last_seen_at) ON TABLE public.device TO ${EMQX_TS_DB_USER};
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${EMQX_TS_DB_USER};
 GRANT EXECUTE ON FUNCTION public.ingest_telemetry(TEXT, JSONB, TEXT, INT) TO ${EMQX_TS_DB_USER};
+GRANT EXECUTE ON FUNCTION public.ingest_telemetry(TEXT, TEXT, TEXT, INT) TO ${EMQX_TS_DB_USER};
 SQL
 
   echo "Runtime DB roles ready (${STACK_ENV})"
@@ -856,7 +857,7 @@ EOF_CONNECTOR
   "enable": true,
   "connector": "${connector_name}",
   "parameters": {
-    "sql": "SELECT ingest_telemetry(\${topic}, \${payload}::jsonb, \${clientid}, \${qos});"
+    "sql": "SELECT ingest_telemetry(\${topic}, \${payload}, \${clientid}, \${qos});"
   },
   "resource_opts": {
     "batch_size": 1,

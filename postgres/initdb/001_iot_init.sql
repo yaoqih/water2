@@ -52,15 +52,17 @@ INSERT INTO metric_dict(metric, display_name, unit, visible, alarm_low, alarm_hi
 SELECT s.metric, s.display_name, s.unit, s.visible, s.alarm_low, s.alarm_high
 FROM (
   VALUES
-    ('watetT', '水温', '°C', true, 0::double precision, 35::double precision),
-    ('waterEC', '电导率', 'uS/cm', true, 50::double precision, 2000::double precision),
+    ('watert', '水温', '°C', true, 0::double precision, 35::double precision),
+    ('waterec', '电导率', 'uS/cm', true, 50::double precision, 2000::double precision),
     ('amnitro', '氨氮', 'mg/L', true, 0::double precision, 1.0::double precision),
     ('ph', '酸碱度', 'pH', true, 6::double precision, 9::double precision),
-    ('dissolvedOxygen', '溶解氧', 'mg/L', true, 5::double precision, 14.6::double precision),
+    ('dissolvedoxygen', '溶解氧', 'mg/L', true, 5::double precision, 14.6::double precision),
     ('turbidity', '浊度', 'NTU', true, 0::double precision, 10::double precision),
     ('cod', '化学需氧量', 'mg/L', true, 0::double precision, 20::double precision),
     ('ss', '悬浮物浓度', 'mg/L', true, 0::double precision, 10::double precision),
-    ('temperature', '水温2', '°C', true, -20::double precision, 60::double precision)
+    ('temperature', '水温2', '°C', true, -20::double precision, 60::double precision),
+    ('pow', '功率', 'V', true, 9::double precision, 15::double precision),
+    ('rssi', '信号强度', 'asu', true, 0::double precision, 31::double precision)
 ) AS s(metric, display_name, unit, visible, alarm_low, alarm_high)
 WHERE NOT EXISTS (SELECT 1 FROM metric_dict);
 
@@ -124,6 +126,65 @@ CREATE INDEX IF NOT EXISTS metric_sample_plant_metric_point_ts_idx
 
 DROP FUNCTION IF EXISTS ingest_telemetry(TEXT, JSONB, TEXT, SMALLINT);
 DROP FUNCTION IF EXISTS ingest_telemetry(TEXT, JSONB, TEXT, INT);
+DROP FUNCTION IF EXISTS ingest_telemetry(TEXT, TEXT, TEXT, SMALLINT);
+DROP FUNCTION IF EXISTS ingest_telemetry(TEXT, TEXT, TEXT, INT);
+DROP FUNCTION IF EXISTS normalize_telemetry_payload(TEXT);
+CREATE OR REPLACE FUNCTION normalize_telemetry_payload(
+  p_payload_text TEXT
+) RETURNS JSONB
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_payload_text TEXT;
+  v_payload_json JSONB;
+  v_compatible_text TEXT;
+BEGIN
+  v_payload_text := btrim(COALESCE(p_payload_text, ''));
+  IF v_payload_text = '' THEN
+    RAISE EXCEPTION 'payload must contain at least one metric';
+  END IF;
+
+  BEGIN
+    v_payload_json := v_payload_text::JSONB;
+    RETURN v_payload_json;
+  EXCEPTION WHEN others THEN
+    NULL;
+  END;
+
+  -- Compatibility mode: accept object payload with bare keys, e.g. {pow:12.2,RSSI:15}.
+  v_compatible_text := regexp_replace(v_payload_text, '[\r\n\t]+', ' ', 'g');
+  v_compatible_text := regexp_replace(
+    v_compatible_text,
+    '([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*:)',
+    '\1"\2"\3',
+    'g'
+  );
+
+  BEGIN
+    v_payload_json := v_compatible_text::JSONB;
+    RETURN v_payload_json;
+  EXCEPTION WHEN others THEN
+    RAISE EXCEPTION 'payload must be a json object or compatible flat object text';
+  END;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION ingest_telemetry(
+  p_topic TEXT,
+  p_payload TEXT,
+  p_clientid TEXT,
+  p_qos INT
+) RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_payload_json JSONB;
+BEGIN
+  v_payload_json := normalize_telemetry_payload(p_payload);
+  PERFORM ingest_telemetry(p_topic, v_payload_json, p_clientid, p_qos);
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION ingest_telemetry(
   p_topic TEXT,
   p_payload JSONB,

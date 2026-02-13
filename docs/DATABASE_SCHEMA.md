@@ -61,11 +61,13 @@
 
 `ingest_telemetry(topic text, payload jsonb, clientid text, qos int)`
 
+`ingest_telemetry(topic text, payload text, clientid text, qos int)`（兼容模式）
+
 职责：
 
 1. 解析 topic 并提取 `plant_id/point_id/device_id`
 2. 校验 `device_id == clientid`
-3. 校验 payload 为扁平 JSON（禁止 `metrics/msg_id/seq`）
+3. 校验 payload 为扁平 JSON（兼容模式支持 bare key 文本并转换为 JSON；禁止 `metrics/msg_id/seq`）
 4. 校验设备存在、启用、路径匹配
 5. 服务端生成 `msg_id`
 6. 写入 `raw_message`

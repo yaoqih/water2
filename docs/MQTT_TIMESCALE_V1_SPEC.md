@@ -88,13 +88,16 @@
 
 ## 6. 服务端入库契约
 
-函数：`ingest_telemetry(topic text, payload jsonb, clientid text, qos int)`
+函数：
+
+- `ingest_telemetry(topic text, payload jsonb, clientid text, qos int)`
+- `ingest_telemetry(topic text, payload text, clientid text, qos int)`（兼容模式）
 
 校验顺序：
 
 1. topic 必须匹配 V1 格式
 2. `device_id == clientid`
-3. payload 必须是扁平 JSON
+3. payload 必须可解析为扁平 JSON（兼容模式允许 `{pow:12.2,RSSI:15}` 这类 bare key 文本）
 4. payload 不得包含 `metrics/msg_id/seq`
 5. 设备必须存在、启用且与 topic 的 plant/point/device 一致
 
@@ -115,7 +118,7 @@ SELECT * FROM "water/v1/+/+/+/telemetry"
 Action SQL：
 
 ```sql
-SELECT ingest_telemetry(${topic}, ${payload}::jsonb, ${clientid}, ${qos});
+SELECT ingest_telemetry(${topic}, ${payload}, ${clientid}, ${qos});
 ```
 
 资源命名：

@@ -100,6 +100,8 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_USERS_VIEWERS_CAN_EDIT: "false"
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_PANELS_DISABLE_SANITIZE_HTML: "true"
       GF_EXPLORE_ENABLED: "false"
       GF_PLUGINS_PREINSTALL: volkovlabs-form-panel
       GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 30s

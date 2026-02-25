@@ -193,106 +193,18 @@
       },
       {
          "gridPos": {
-            "h": 2,
+            "h": 32,
             "w": 8,
             "x": 0,
-            "y": 44
+            "y": 10
          },
-         "id": 115,
-         "options": {
-            "content": "第 **${mean_page}/${mean_page_total}** 页。[⏮ 首页](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=1) · [◀ 上一页](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_prev:percentencode}) · [下一页 ▶](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_next:percentencode}) · [末页 ⏭](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page_total:percentencode})",
-            "mode": "markdown"
-         },
-         "title": "分页",
-         "type": "text"
-      },
-      {
-         "datasource": "TimescaleDB-RO",
-         "fieldConfig": {
-            "defaults": {
-               "custom": {
-                  "drawStyle": "line",
-                  "fillOpacity": 10,
-                  "lineInterpolation": "smooth",
-                  "lineWidth": 2,
-                  "pointSize": 3,
-                  "showPoints": "always",
-                  "spanNulls": true
-               }
-            },
-            "overrides": [
-               {
-                  "matcher": {
-                     "id": "byName",
-                     "options": "入口"
-                  },
-                  "properties": [
-                     {
-                        "id": "color",
-                        "value": {
-                           "fixedColor": "#F2CC0C",
-                           "mode": "fixed"
-                        }
-                     }
-                  ]
-               },
-               {
-                  "matcher": {
-                     "id": "byName",
-                     "options": "出口"
-                  },
-                  "properties": [
-                     {
-                        "id": "color",
-                        "value": {
-                           "fixedColor": "#73BF69",
-                           "mode": "fixed"
-                        }
-                     }
-                  ]
-               }
-            ]
-         },
-         "gridPos": {
-            "h": 6,
-            "w": 8,
-            "x": 0,
-            "y": 14
-         },
-         "hideTimeOverride": true,
          "id": 301,
-         "links": [
-            {
-               "targetBlank": false,
-               "title": "切换当前指标",
-               "url": "/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${mean_metric_page:percentencode}&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode}"
-            }
-         ],
-         "maxPerRow": 1,
          "options": {
-            "legend": {
-               "calcs": [ ],
-               "displayMode": "list",
-               "placement": "bottom"
-            },
-            "tooltip": {
-               "mode": "multi",
-               "sort": "none"
-            }
+            "content": "<iframe src=\"/d/iot-v1-plant-monitor-left24h/iot-v1-plant-monitor-left24h?kiosk=1&from=now-24h&to=now&var-plant_id=${plant_id:percentencode}&var-inlet_point_id=${inlet_point_id:percentencode}&var-outlet_point_id=${outlet_point_id:percentencode}\" width=\"100%\" height=\"100%\" frameborder=\"0\" scrolling=\"yes\"></iframe>",
+            "mode": "html"
          },
-         "repeat": "mean_metric_page",
-         "repeatDirection": "v",
-         "targets": [
-            {
-               "format": "time_series",
-               "rawQuery": true,
-               "rawSql": "SELECT\n  date_trunc('minute', m.ingest_ts) AS \"time\",\n  avg(CASE WHEN m.point_id = ${inlet_point_id:sqlstring} THEN m.value_num END) AS \"入口\",\n  avg(CASE WHEN m.point_id = ${outlet_point_id:sqlstring} THEN m.value_num END) AS \"出口\"\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND m.metric IN (${mean_metric_page:sqlstring})\n  AND m.ingest_ts >= now() - interval '24 hours'\n  AND m.ingest_ts <= now()\nGROUP BY 1\nORDER BY 1;",
-               "refId": "A"
-            }
-         ],
-         "timeFrom": "now-24h",
-         "title": "${mean_metric_page:text} （最近24h）",
-         "type": "timeseries"
+         "title": " ",
+         "type": "text"
       },
       {
          "gridPos": {
@@ -303,7 +215,7 @@
          },
          "id": 16,
          "options": {
-            "content": "当前指标：**${metric:text}** ｜ 当前周期：**${agg}**\n\n聚合周期切换：[5分钟](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=5min&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [小时](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=hour&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [天](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=day&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to}) · [月](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=month&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})\n\n指标切换：${metric_switch_md:raw}",
+            "content": "当前指标：**${metric:text}** ｜ 当前周期：**${agg}**\n\n聚合周期切换：[5分钟](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=5min&var-mean_page=${mean_page:percentencode}) · [小时](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=hour&var-mean_page=${mean_page:percentencode}) · [天](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=day&var-mean_page=${mean_page:percentencode}) · [月](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${metric:percentencode}&var-agg=month&var-mean_page=${mean_page:percentencode})\n\n指标切换：${metric_switch_md:raw}",
             "mode": "markdown"
          },
          "title": "蜡烛图周期指标选择",
@@ -435,16 +347,19 @@
             {
                "format": "table",
                "rawQuery": true,
-               "rawSql": "WITH tw AS (\n  SELECT '${__from:date:iso}'::timestamptz AS from_ts, LEAST('${__to:date:iso}'::timestamptz, now()) AS to_ts\n), base AS (\n  SELECT CASE ${agg:sqlstring}\n           WHEN '5min' THEN to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300)\n           ELSE date_trunc(CASE ${agg:sqlstring}\n                  WHEN 'hour' THEN 'hour'\n                  WHEN 'day' THEN 'day'\n                  WHEN 'month' THEN 'month'\n                  ELSE 'hour' END, m.ingest_ts)\n         END AS bucket_ts,\n         m.ingest_ts,\n         m.value_num\n  FROM metric_sample m\n  JOIN tw ON true\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${inlet_point_id:sqlstring}\n    AND m.ingest_ts BETWEEN tw.from_ts AND tw.to_ts\n), ohlc AS (\n  SELECT bucket_ts,\n         CASE ${agg:sqlstring}\n           WHEN '5min' THEN bucket_ts + interval '5 minutes'\n           WHEN 'hour' THEN bucket_ts + interval '1 hour'\n           WHEN 'day' THEN bucket_ts + interval '1 day'\n           WHEN 'month' THEN bucket_ts + interval '1 month'\n           ELSE bucket_ts + interval '1 hour'\n         END AS bucket_end,\n         (array_agg(value_num ORDER BY ingest_ts ASC))[1] AS open,\n         max(value_num) AS high,\n         min(value_num) AS low,\n         (array_agg(value_num ORDER BY ingest_ts DESC))[1] AS close\n  FROM base\n  GROUP BY bucket_ts\n)\nSELECT (bucket_ts + ((bucket_end - bucket_ts) / 2.0)) AS \"time\",\n       COALESCE(open, close) AS open,\n       high,\n       low,\n       close\nFROM ohlc\nORDER BY \"time\";",
+               "rawSql": "WITH base AS (\n  SELECT CASE ${agg:sqlstring}\n           WHEN '5min' THEN to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300)\n           ELSE date_trunc(CASE ${agg:sqlstring}\n                  WHEN 'hour' THEN 'hour'\n                  WHEN 'day' THEN 'day'\n                  WHEN 'month' THEN 'month'\n                  ELSE 'hour' END, m.ingest_ts)\n         END AS bucket_ts,\n         m.ingest_ts,\n         m.value_num\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${inlet_point_id:sqlstring}\n), ohlc AS (\n  SELECT bucket_ts,\n         CASE ${agg:sqlstring}\n           WHEN '5min' THEN bucket_ts + interval '5 minutes'\n           WHEN 'hour' THEN bucket_ts + interval '1 hour'\n           WHEN 'day' THEN bucket_ts + interval '1 day'\n           WHEN 'month' THEN bucket_ts + interval '1 month'\n           ELSE bucket_ts + interval '1 hour'\n         END AS bucket_end,\n         (array_agg(value_num ORDER BY ingest_ts ASC))[1] AS open,\n         max(value_num) AS high,\n         min(value_num) AS low,\n         (array_agg(value_num ORDER BY ingest_ts DESC))[1] AS close\n  FROM base\n  GROUP BY bucket_ts\n)\nSELECT (bucket_ts + ((bucket_end - bucket_ts) / 2.0)) AS \"time\",\n       COALESCE(open, close) AS open,\n       high,\n       low,\n       close\nFROM ohlc\nORDER BY \"time\";",
                "refId": "A"
             },
             {
                "format": "time_series",
                "rawQuery": true,
-               "rawSql": "WITH tw AS (\n  SELECT '${__from:date:iso}'::timestamptz AS from_ts,\n         LEAST('${__to:date:iso}'::timestamptz, now()) AS to_ts\n), alarm AS (\n  SELECT md.alarm_low::double precision AS alarm_low,\n         md.alarm_high::double precision AS alarm_high\n  FROM metric_dict md\n  WHERE md.metric = ${metric:sqlstring}\n    AND md.visible IS TRUE\n  LIMIT 1\n)\nSELECT tw.from_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM tw\nJOIN alarm ON true\nUNION ALL\nSELECT tw.to_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM tw\nJOIN alarm ON true\nORDER BY 1;",
+               "rawSql": "WITH bounds AS (\n  SELECT min(m.ingest_ts) AS from_ts,\n         max(m.ingest_ts) AS to_ts\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${inlet_point_id:sqlstring}\n), alarm AS (\n  SELECT md.alarm_low::double precision AS alarm_low,\n         md.alarm_high::double precision AS alarm_high\n  FROM metric_dict md\n  WHERE md.metric = ${metric:sqlstring}\n    AND md.visible IS TRUE\n  LIMIT 1\n)\nSELECT bounds.from_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.from_ts IS NOT NULL\nUNION ALL\nSELECT bounds.to_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.to_ts IS NOT NULL\nORDER BY 1;",
                "refId": "B"
             }
          ],
+         "hideTimeOverride": true,
+         "timeFrom": "${candle_span_sec}s",
+         "timeShift": "${candle_lag_sec}s",
          "title": "入口蜡烛图（${metric:text}｜告警下限:${metric_alarm_low:text} 上限:${metric_alarm_high:text}）",
          "type": "candlestick"
       },
@@ -574,16 +489,19 @@
             {
                "format": "table",
                "rawQuery": true,
-               "rawSql": "WITH tw AS (\n  SELECT '${__from:date:iso}'::timestamptz AS from_ts, LEAST('${__to:date:iso}'::timestamptz, now()) AS to_ts\n), base AS (\n  SELECT CASE ${agg:sqlstring}\n           WHEN '5min' THEN to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300)\n           ELSE date_trunc(CASE ${agg:sqlstring}\n                  WHEN 'hour' THEN 'hour'\n                  WHEN 'day' THEN 'day'\n                  WHEN 'month' THEN 'month'\n                  ELSE 'hour' END, m.ingest_ts)\n         END AS bucket_ts,\n         m.ingest_ts,\n         m.value_num\n  FROM metric_sample m\n  JOIN tw ON true\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${outlet_point_id:sqlstring}\n    AND m.ingest_ts BETWEEN tw.from_ts AND tw.to_ts\n), ohlc AS (\n  SELECT bucket_ts,\n         CASE ${agg:sqlstring}\n           WHEN '5min' THEN bucket_ts + interval '5 minutes'\n           WHEN 'hour' THEN bucket_ts + interval '1 hour'\n           WHEN 'day' THEN bucket_ts + interval '1 day'\n           WHEN 'month' THEN bucket_ts + interval '1 month'\n           ELSE bucket_ts + interval '1 hour'\n         END AS bucket_end,\n         (array_agg(value_num ORDER BY ingest_ts ASC))[1] AS open,\n         max(value_num) AS high,\n         min(value_num) AS low,\n         (array_agg(value_num ORDER BY ingest_ts DESC))[1] AS close\n  FROM base\n  GROUP BY bucket_ts\n)\nSELECT (bucket_ts + ((bucket_end - bucket_ts) / 2.0)) AS \"time\",\n       COALESCE(open, close) AS open,\n       high,\n       low,\n       close\nFROM ohlc\nORDER BY \"time\";",
+               "rawSql": "WITH base AS (\n  SELECT CASE ${agg:sqlstring}\n           WHEN '5min' THEN to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300)\n           ELSE date_trunc(CASE ${agg:sqlstring}\n                  WHEN 'hour' THEN 'hour'\n                  WHEN 'day' THEN 'day'\n                  WHEN 'month' THEN 'month'\n                  ELSE 'hour' END, m.ingest_ts)\n         END AS bucket_ts,\n         m.ingest_ts,\n         m.value_num\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${outlet_point_id:sqlstring}\n), ohlc AS (\n  SELECT bucket_ts,\n         CASE ${agg:sqlstring}\n           WHEN '5min' THEN bucket_ts + interval '5 minutes'\n           WHEN 'hour' THEN bucket_ts + interval '1 hour'\n           WHEN 'day' THEN bucket_ts + interval '1 day'\n           WHEN 'month' THEN bucket_ts + interval '1 month'\n           ELSE bucket_ts + interval '1 hour'\n         END AS bucket_end,\n         (array_agg(value_num ORDER BY ingest_ts ASC))[1] AS open,\n         max(value_num) AS high,\n         min(value_num) AS low,\n         (array_agg(value_num ORDER BY ingest_ts DESC))[1] AS close\n  FROM base\n  GROUP BY bucket_ts\n)\nSELECT (bucket_ts + ((bucket_end - bucket_ts) / 2.0)) AS \"time\",\n       COALESCE(open, close) AS open,\n       high,\n       low,\n       close\nFROM ohlc\nORDER BY \"time\";",
                "refId": "A"
             },
             {
                "format": "time_series",
                "rawQuery": true,
-               "rawSql": "WITH tw AS (\n  SELECT '${__from:date:iso}'::timestamptz AS from_ts,\n         LEAST('${__to:date:iso}'::timestamptz, now()) AS to_ts\n), alarm AS (\n  SELECT md.alarm_low::double precision AS alarm_low,\n         md.alarm_high::double precision AS alarm_high\n  FROM metric_dict md\n  WHERE md.metric = ${metric:sqlstring}\n    AND md.visible IS TRUE\n  LIMIT 1\n)\nSELECT tw.from_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM tw\nJOIN alarm ON true\nUNION ALL\nSELECT tw.to_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM tw\nJOIN alarm ON true\nORDER BY 1;",
+               "rawSql": "WITH bounds AS (\n  SELECT min(m.ingest_ts) AS from_ts,\n         max(m.ingest_ts) AS to_ts\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${outlet_point_id:sqlstring}\n), alarm AS (\n  SELECT md.alarm_low::double precision AS alarm_low,\n         md.alarm_high::double precision AS alarm_high\n  FROM metric_dict md\n  WHERE md.metric = ${metric:sqlstring}\n    AND md.visible IS TRUE\n  LIMIT 1\n)\nSELECT bounds.from_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.from_ts IS NOT NULL\nUNION ALL\nSELECT bounds.to_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.to_ts IS NOT NULL\nORDER BY 1;",
                "refId": "B"
             }
          ],
+         "hideTimeOverride": true,
+         "timeFrom": "${candle_span_sec}s",
+         "timeShift": "${candle_lag_sec}s",
          "title": "出口蜡烛图（${metric:text}｜告警下限:${metric_alarm_low:text} 上限:${metric_alarm_high:text}）",
          "type": "candlestick"
       },
@@ -639,6 +557,7 @@
             "x": 8,
             "y": 34
          },
+         "hideTimeOverride": true,
          "id": 14,
          "options": {
             "legend": {
@@ -659,6 +578,8 @@
                "refId": "A"
             }
          ],
+         "timeFrom": "${candle_span_sec}s",
+         "timeShift": "${candle_lag_sec}s",
          "title": "时间范围导航（全量：拖拽缩小 / 双击恢复）",
          "type": "timeseries"
       },
@@ -667,7 +588,7 @@
             "h": 2,
             "w": 16,
             "x": 8,
-            "y": 44
+            "y": 40
          },
          "id": 15,
          "options": {
@@ -722,7 +643,7 @@
             "name": "inlet_point_id",
             "options": [ ],
             "query": "SELECT point_id FROM point WHERE plant_id = ${plant_id:sqlstring} AND point_type = 'inlet' ORDER BY point_id LIMIT 1;",
-            "refresh": 2,
+            "refresh": 1,
             "regex": "",
             "skipUrlSync": true,
             "sort": 1,
@@ -742,7 +663,7 @@
             "name": "outlet_point_id",
             "options": [ ],
             "query": "SELECT point_id FROM point WHERE plant_id = ${plant_id:sqlstring} AND point_type = 'outlet' ORDER BY point_id LIMIT 1;",
-            "refresh": 2,
+            "refresh": 1,
             "regex": "",
             "skipUrlSync": true,
             "sort": 1,
@@ -805,6 +726,46 @@
             "query": "5min,hour,day,month",
             "skipUrlSync": false,
             "type": "custom"
+         },
+         {
+            "current": {
+               "selected": true,
+               "text": "86400",
+               "value": "86400"
+            },
+            "datasource": "TimescaleDB-RO",
+            "definition": "SELECT COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __value\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
+            "hide": 2,
+            "includeAll": false,
+            "multi": false,
+            "name": "candle_span_sec",
+            "options": [ ],
+            "query": "SELECT COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __value\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": true,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "current": {
+               "selected": true,
+               "text": "0",
+               "value": "0"
+            },
+            "datasource": "TimescaleDB-RO",
+            "definition": "SELECT COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __value\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
+            "hide": 2,
+            "includeAll": false,
+            "multi": false,
+            "name": "candle_lag_sec",
+            "options": [ ],
+            "query": "SELECT COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __value\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": true,
+            "sort": 1,
+            "type": "query"
          },
          {
             "current": {
@@ -974,13 +935,13 @@
                "value": ""
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})' AS link\n  FROM md_base\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
+            "definition": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode})' AS link\n  FROM md_base\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
             "hide": 2,
             "includeAll": false,
             "multi": false,
             "name": "metric_switch_md",
             "options": [ ],
-            "query": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode}&from=${__from}&to=${__to})' AS link\n  FROM md_base\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
+            "query": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode})' AS link\n  FROM md_base\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": true,

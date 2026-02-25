@@ -1,0 +1,230 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "datasource": "TimescaleDB-RO",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "always",
+            "spanNulls": true
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "入口"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#F2CC0C",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "出口"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#73BF69",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "hideTimeOverride": true,
+      "id": 301,
+      "links": [
+        {
+          "targetBlank": false,
+          "title": "切换右侧蜡烛图",
+          "url": "javascript:window.top.location.href='/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=${mean_metric_page:percentencode}'"
+        }
+      ],
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH base AS (\n  SELECT to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300) AS bucket_ts,\n         m.point_id,\n         m.value_num\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n    AND m.metric IN (${mean_metric_page:sqlstring})\n    AND m.ingest_ts >= now() - interval '24 hours'\n    AND m.ingest_ts <= now()\n)\nSELECT bucket_ts AS \"time\",\n       avg(CASE WHEN point_id = ${inlet_point_id:sqlstring} THEN value_num END) AS \"入口\",\n       avg(CASE WHEN point_id = ${outlet_point_id:sqlstring} THEN value_num END) AS \"出口\"\nFROM base\nGROUP BY bucket_ts\nORDER BY bucket_ts;",
+          "refId": "A"
+        }
+      ],
+      "repeat": "mean_metric_page",
+      "repeatDirection": "v",
+      "timeFrom": "now-24h",
+      "title": "${mean_metric_page:text} （最近24h）",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "embedded",
+    "iot",
+    "monitor",
+    "plant"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "plant_cqbb_liaoning53",
+          "value": "plant_cqbb_liaoning53"
+        },
+        "datasource": "TimescaleDB-RO",
+        "definition": "SELECT p.plant_id AS __value,\n       COALESCE(NULLIF(btrim(p.plant_name), ''), p.plant_id) AS __text\nFROM plant p\nORDER BY __text;",
+        "hide": 2,
+        "includeAll": false,
+        "label": "水厂",
+        "multi": false,
+        "name": "plant_id",
+        "options": [],
+        "query": "SELECT p.plant_id AS __value,\n       COALESCE(NULLIF(btrim(p.plant_name), ''), p.plant_id) AS __text\nFROM plant p\nORDER BY __text;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "pt_cqbb_liaoning53_inlet",
+          "value": "pt_cqbb_liaoning53_inlet"
+        },
+        "datasource": "TimescaleDB-RO",
+        "definition": "SELECT point_id FROM point WHERE plant_id = ${plant_id:sqlstring} AND point_type = 'inlet' ORDER BY point_id LIMIT 1;",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "inlet_point_id",
+        "options": [],
+        "query": "SELECT point_id FROM point WHERE plant_id = ${plant_id:sqlstring} AND point_type = 'inlet' ORDER BY point_id LIMIT 1;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "pt_cqbb_liaoning53_outlet",
+          "value": "pt_cqbb_liaoning53_outlet"
+        },
+        "datasource": "TimescaleDB-RO",
+        "definition": "SELECT point_id FROM point WHERE plant_id = ${plant_id:sqlstring} AND point_type = 'outlet' ORDER BY point_id LIMIT 1;",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "outlet_point_id",
+        "options": [],
+        "query": "SELECT point_id FROM point WHERE plant_id = ${plant_id:sqlstring} AND point_type = 'outlet' ORDER BY point_id LIMIT 1;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": "TimescaleDB-RO",
+        "definition": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), md_named AS (\n  SELECT metric,\n         metric_text,\n         COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM md_base\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM md_named\nORDER BY metric;",
+        "hide": 2,
+        "includeAll": true,
+        "multi": true,
+        "name": "mean_metric_page",
+        "options": [],
+        "query": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), md_named AS (\n  SELECT metric,\n         metric_text,\n         COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM md_base\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM md_named\nORDER BY metric;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true,
+    "refresh_intervals": [
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ],
+    "time_options": [
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "IoT V1 · Plant Monitor · Left 24h",
+  "uid": "iot-v1-plant-monitor-left24h",
+  "version": 1
+}

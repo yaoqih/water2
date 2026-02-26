@@ -950,9 +950,12 @@ GRANT EXECUTE ON FUNCTION
   admin_api.upsert_device(TEXT, TEXT, INT, TEXT, BOOLEAN),
   admin_api.toggle_device(TEXT, BOOLEAN),
   admin_api.upsert_metric(TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, BOOLEAN),
-  admin_api.export_metric_rows(TEXT[], TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INT),
   admin_api.delete_device(TEXT),
   admin_api.delete_point(TEXT, BOOLEAN),
   admin_api.delete_plant(TEXT, BOOLEAN),
   admin_api.delete_metric(TEXT)
 TO iot_api_editor;
+
+GRANT EXECUTE ON FUNCTION
+  admin_api.export_metric_rows(TEXT[], TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INT)
+TO iot_api_viewer, iot_api_editor;

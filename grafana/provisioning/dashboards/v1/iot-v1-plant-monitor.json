@@ -314,6 +314,7 @@
             "x": 8,
             "y": 14
          },
+         "hideTimeOverride": true,
          "id": 4,
          "options": {
             "candleStyle": "candles",
@@ -357,7 +358,6 @@
                "refId": "B"
             }
          ],
-         "hideTimeOverride": true,
          "timeFrom": "${candle_span_sec}s",
          "timeShift": "${candle_lag_sec}s",
          "title": "入口蜡烛图（${metric:text}｜告警下限:${metric_alarm_low:text} 上限:${metric_alarm_high:text}）",
@@ -456,6 +456,7 @@
             "x": 8,
             "y": 24
          },
+         "hideTimeOverride": true,
          "id": 17,
          "options": {
             "candleStyle": "candles",
@@ -499,7 +500,6 @@
                "refId": "B"
             }
          ],
-         "hideTimeOverride": true,
          "timeFrom": "${candle_span_sec}s",
          "timeShift": "${candle_lag_sec}s",
          "title": "出口蜡烛图（${metric:text}｜告警下限:${metric_alarm_low:text} 上限:${metric_alarm_high:text}）",

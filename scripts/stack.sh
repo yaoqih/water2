@@ -287,12 +287,15 @@ GRANT EXECUTE ON FUNCTION
   admin_api.upsert_device(TEXT, TEXT, INT, TEXT, BOOLEAN),
   admin_api.toggle_device(TEXT, BOOLEAN),
   admin_api.upsert_metric(TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, BOOLEAN),
-  admin_api.export_metric_rows(TEXT[], TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INT),
   admin_api.delete_device(TEXT),
   admin_api.delete_point(TEXT, BOOLEAN),
   admin_api.delete_plant(TEXT, BOOLEAN),
   admin_api.delete_metric(TEXT)
 TO ${grafana_admin_user};
+
+GRANT EXECUTE ON FUNCTION
+  admin_api.export_metric_rows(TEXT[], TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INT)
+TO ${grafana_admin_user}, ${grafana_ro_user};
 SQL
 
   echo "Grafana DB roles ready (${STACK_ENV})"
@@ -323,6 +326,7 @@ configure_grafana_nav_panel() {
     iot-v1-admin-metric
     iot-v1-admin-export
     iot-v1-plant-monitor
+    iot-v1-plant-monitor-left24h
   )
 
   api_get() {
@@ -724,6 +728,7 @@ configure_grafana_access_control() {
     iot-v1-admin-home
     iot-v1-admin-export
     iot-v1-plant-monitor
+    iot-v1-plant-monitor-left24h
   )
   local admin_dashboard_uids=(
     iot-v1-admin-plant

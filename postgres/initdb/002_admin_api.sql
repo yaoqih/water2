@@ -323,9 +323,8 @@ BEGIN
 
   v_limit := COALESCE(p_limit, 1000);
   IF v_limit <= 0 THEN
-    v_limit := 50000;
+    v_limit := NULL;
   END IF;
-  v_limit := LEAST(v_limit, 50000);
 
   SELECT array_agg(f)
   INTO v_drop_fields

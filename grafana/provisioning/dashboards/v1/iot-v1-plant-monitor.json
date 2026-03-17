@@ -31,7 +31,7 @@
             "uid": "lib_iot_view_nav"
          },
          "options": {
-            "content": "[🏠 总览](/d/iot-v1-admin-home) · [🧾 导出](/d/iot-v1-admin-export) · [📈 监测大屏](/d/iot-v1-plant-monitor)",
+            "content": "[🏠 总览](/d/iot-v1-admin-home) · [🧾 导出](/d/iot-v1-admin-export) · [📈 监测大屏](/d/iot-v1-plant-monitor) · [📟 设备监控](/d/iot-v1-device-sensor-monitor)",
             "mode": "markdown"
          },
          "title": "导航",
@@ -107,7 +107,7 @@
             {
                "format": "table",
                "rawQuery": true,
-               "rawSql": "WITH latest AS (\n  SELECT m.ingest_ts, m.value_num, m.device_id\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.point_id = ${inlet_point_id:sqlstring}\n    AND m.metric = ${metric_cards:sqlstring}\n  ORDER BY m.ingest_ts DESC\n  LIMIT 1\n)\nSELECT round(l.value_num::numeric, 3) AS value\nFROM latest l\nLEFT JOIN device d ON d.device_id = l.device_id\nWHERE l.ingest_ts >= now() - ((2 * COALESCE(d.report_interval_sec, 60)) * interval '1 second');",
+               "rawSql": "WITH latest AS (\n  SELECT m.ingest_ts, m.value_num, m.device_id\n  FROM admin_api.v_point_metric_effective m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.point_id = ${inlet_point_id:sqlstring}\n    AND m.metric = ${metric_cards:sqlstring}\n  ORDER BY m.ingest_ts DESC\n  LIMIT 1\n)\nSELECT round(l.value_num::numeric, 3) AS value\nFROM latest l\nLEFT JOIN device d ON d.device_id = l.device_id\nWHERE l.ingest_ts >= now() - ((2 * COALESCE(d.report_interval_sec, 60)) * interval '1 second');",
                "refId": "A"
             }
          ],
@@ -184,7 +184,7 @@
             {
                "format": "table",
                "rawQuery": true,
-               "rawSql": "WITH latest AS (\n  SELECT m.ingest_ts, m.value_num, m.device_id\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.point_id = ${outlet_point_id:sqlstring}\n    AND m.metric = ${metric_cards:sqlstring}\n  ORDER BY m.ingest_ts DESC\n  LIMIT 1\n)\nSELECT round(l.value_num::numeric, 3) AS value\nFROM latest l\nLEFT JOIN device d ON d.device_id = l.device_id\nWHERE l.ingest_ts >= now() - ((2 * COALESCE(d.report_interval_sec, 60)) * interval '1 second');",
+               "rawSql": "WITH latest AS (\n  SELECT m.ingest_ts, m.value_num, m.device_id\n  FROM admin_api.v_point_metric_effective m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.point_id = ${outlet_point_id:sqlstring}\n    AND m.metric = ${metric_cards:sqlstring}\n  ORDER BY m.ingest_ts DESC\n  LIMIT 1\n)\nSELECT round(l.value_num::numeric, 3) AS value\nFROM latest l\nLEFT JOIN device d ON d.device_id = l.device_id\nWHERE l.ingest_ts >= now() - ((2 * COALESCE(d.report_interval_sec, 60)) * interval '1 second');",
                "refId": "A"
             }
          ],
@@ -348,13 +348,13 @@
             {
                "format": "table",
                "rawQuery": true,
-               "rawSql": "WITH base AS (\n  SELECT CASE ${agg:sqlstring}\n           WHEN '5min' THEN to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300)\n           ELSE date_trunc(CASE ${agg:sqlstring}\n                  WHEN 'hour' THEN 'hour'\n                  WHEN 'day' THEN 'day'\n                  WHEN 'month' THEN 'month'\n                  ELSE 'hour' END, m.ingest_ts)\n         END AS bucket_ts,\n         m.ingest_ts,\n         m.value_num\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${inlet_point_id:sqlstring}\n), ohlc AS (\n  SELECT bucket_ts,\n         CASE ${agg:sqlstring}\n           WHEN '5min' THEN bucket_ts + interval '5 minutes'\n           WHEN 'hour' THEN bucket_ts + interval '1 hour'\n           WHEN 'day' THEN bucket_ts + interval '1 day'\n           WHEN 'month' THEN bucket_ts + interval '1 month'\n           ELSE bucket_ts + interval '1 hour'\n         END AS bucket_end,\n         (array_agg(value_num ORDER BY ingest_ts ASC))[1] AS open,\n         max(value_num) AS high,\n         min(value_num) AS low,\n         (array_agg(value_num ORDER BY ingest_ts DESC))[1] AS close\n  FROM base\n  GROUP BY bucket_ts\n)\nSELECT (bucket_ts + ((bucket_end - bucket_ts) / 2.0)) AS \"time\",\n       COALESCE(open, close) AS open,\n       high,\n       low,\n       close\nFROM ohlc\nORDER BY \"time\";",
+               "rawSql": "WITH base AS (\n  SELECT CASE ${agg:sqlstring}\n           WHEN '5min' THEN to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300)\n           ELSE date_trunc(CASE ${agg:sqlstring}\n                  WHEN 'hour' THEN 'hour'\n                  WHEN 'day' THEN 'day'\n                  WHEN 'month' THEN 'month'\n                  ELSE 'hour' END, m.ingest_ts)\n         END AS bucket_ts,\n         m.ingest_ts,\n         m.value_num\n  FROM admin_api.v_point_metric_effective m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${inlet_point_id:sqlstring}\n), ohlc AS (\n  SELECT bucket_ts,\n         CASE ${agg:sqlstring}\n           WHEN '5min' THEN bucket_ts + interval '5 minutes'\n           WHEN 'hour' THEN bucket_ts + interval '1 hour'\n           WHEN 'day' THEN bucket_ts + interval '1 day'\n           WHEN 'month' THEN bucket_ts + interval '1 month'\n           ELSE bucket_ts + interval '1 hour'\n         END AS bucket_end,\n         (array_agg(value_num ORDER BY ingest_ts ASC))[1] AS open,\n         max(value_num) AS high,\n         min(value_num) AS low,\n         (array_agg(value_num ORDER BY ingest_ts DESC))[1] AS close\n  FROM base\n  GROUP BY bucket_ts\n)\nSELECT (bucket_ts + ((bucket_end - bucket_ts) / 2.0)) AS \"time\",\n       COALESCE(open, close) AS open,\n       high,\n       low,\n       close\nFROM ohlc\nORDER BY \"time\";",
                "refId": "A"
             },
             {
                "format": "time_series",
                "rawQuery": true,
-               "rawSql": "WITH bounds AS (\n  SELECT min(m.ingest_ts) AS from_ts,\n         max(m.ingest_ts) AS to_ts\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${inlet_point_id:sqlstring}\n), alarm AS (\n  SELECT md.alarm_low::double precision AS alarm_low,\n         md.alarm_high::double precision AS alarm_high\n  FROM metric_dict md\n  WHERE md.metric = ${metric:sqlstring}\n    AND md.visible IS TRUE\n  LIMIT 1\n)\nSELECT bounds.from_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.from_ts IS NOT NULL\nUNION ALL\nSELECT bounds.to_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.to_ts IS NOT NULL\nORDER BY 1;",
+               "rawSql": "WITH bounds AS (\n  SELECT min(m.ingest_ts) AS from_ts,\n         max(m.ingest_ts) AS to_ts\n  FROM admin_api.v_point_metric_effective m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${inlet_point_id:sqlstring}\n), alarm AS (\n  SELECT md.alarm_low::double precision AS alarm_low,\n         md.alarm_high::double precision AS alarm_high\n  FROM metric_dict md\n  WHERE md.metric = ${metric:sqlstring}\n    AND md.visible IS TRUE\n  LIMIT 1\n)\nSELECT bounds.from_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.from_ts IS NOT NULL\nUNION ALL\nSELECT bounds.to_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.to_ts IS NOT NULL\nORDER BY 1;",
                "refId": "B"
             }
          ],
@@ -490,13 +490,13 @@
             {
                "format": "table",
                "rawQuery": true,
-               "rawSql": "WITH base AS (\n  SELECT CASE ${agg:sqlstring}\n           WHEN '5min' THEN to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300)\n           ELSE date_trunc(CASE ${agg:sqlstring}\n                  WHEN 'hour' THEN 'hour'\n                  WHEN 'day' THEN 'day'\n                  WHEN 'month' THEN 'month'\n                  ELSE 'hour' END, m.ingest_ts)\n         END AS bucket_ts,\n         m.ingest_ts,\n         m.value_num\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${outlet_point_id:sqlstring}\n), ohlc AS (\n  SELECT bucket_ts,\n         CASE ${agg:sqlstring}\n           WHEN '5min' THEN bucket_ts + interval '5 minutes'\n           WHEN 'hour' THEN bucket_ts + interval '1 hour'\n           WHEN 'day' THEN bucket_ts + interval '1 day'\n           WHEN 'month' THEN bucket_ts + interval '1 month'\n           ELSE bucket_ts + interval '1 hour'\n         END AS bucket_end,\n         (array_agg(value_num ORDER BY ingest_ts ASC))[1] AS open,\n         max(value_num) AS high,\n         min(value_num) AS low,\n         (array_agg(value_num ORDER BY ingest_ts DESC))[1] AS close\n  FROM base\n  GROUP BY bucket_ts\n)\nSELECT (bucket_ts + ((bucket_end - bucket_ts) / 2.0)) AS \"time\",\n       COALESCE(open, close) AS open,\n       high,\n       low,\n       close\nFROM ohlc\nORDER BY \"time\";",
+               "rawSql": "WITH base AS (\n  SELECT CASE ${agg:sqlstring}\n           WHEN '5min' THEN to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300)\n           ELSE date_trunc(CASE ${agg:sqlstring}\n                  WHEN 'hour' THEN 'hour'\n                  WHEN 'day' THEN 'day'\n                  WHEN 'month' THEN 'month'\n                  ELSE 'hour' END, m.ingest_ts)\n         END AS bucket_ts,\n         m.ingest_ts,\n         m.value_num\n  FROM admin_api.v_point_metric_effective m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${outlet_point_id:sqlstring}\n), ohlc AS (\n  SELECT bucket_ts,\n         CASE ${agg:sqlstring}\n           WHEN '5min' THEN bucket_ts + interval '5 minutes'\n           WHEN 'hour' THEN bucket_ts + interval '1 hour'\n           WHEN 'day' THEN bucket_ts + interval '1 day'\n           WHEN 'month' THEN bucket_ts + interval '1 month'\n           ELSE bucket_ts + interval '1 hour'\n         END AS bucket_end,\n         (array_agg(value_num ORDER BY ingest_ts ASC))[1] AS open,\n         max(value_num) AS high,\n         min(value_num) AS low,\n         (array_agg(value_num ORDER BY ingest_ts DESC))[1] AS close\n  FROM base\n  GROUP BY bucket_ts\n)\nSELECT (bucket_ts + ((bucket_end - bucket_ts) / 2.0)) AS \"time\",\n       COALESCE(open, close) AS open,\n       high,\n       low,\n       close\nFROM ohlc\nORDER BY \"time\";",
                "refId": "A"
             },
             {
                "format": "time_series",
                "rawQuery": true,
-               "rawSql": "WITH bounds AS (\n  SELECT min(m.ingest_ts) AS from_ts,\n         max(m.ingest_ts) AS to_ts\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${outlet_point_id:sqlstring}\n), alarm AS (\n  SELECT md.alarm_low::double precision AS alarm_low,\n         md.alarm_high::double precision AS alarm_high\n  FROM metric_dict md\n  WHERE md.metric = ${metric:sqlstring}\n    AND md.visible IS TRUE\n  LIMIT 1\n)\nSELECT bounds.from_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.from_ts IS NOT NULL\nUNION ALL\nSELECT bounds.to_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.to_ts IS NOT NULL\nORDER BY 1;",
+               "rawSql": "WITH bounds AS (\n  SELECT min(m.ingest_ts) AS from_ts,\n         max(m.ingest_ts) AS to_ts\n  FROM admin_api.v_point_metric_effective m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id = ${outlet_point_id:sqlstring}\n), alarm AS (\n  SELECT md.alarm_low::double precision AS alarm_low,\n         md.alarm_high::double precision AS alarm_high\n  FROM metric_dict md\n  WHERE md.metric = ${metric:sqlstring}\n    AND md.visible IS TRUE\n  LIMIT 1\n)\nSELECT bounds.from_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.from_ts IS NOT NULL\nUNION ALL\nSELECT bounds.to_ts AS \"time\",\n       alarm.alarm_low AS \"告警下限线\",\n       alarm.alarm_high AS \"告警上限线\"\nFROM bounds\nJOIN alarm ON true\nWHERE bounds.to_ts IS NOT NULL\nORDER BY 1;",
                "refId": "B"
             }
          ],
@@ -574,7 +574,7 @@
             {
                "format": "time_series",
                "rawQuery": true,
-               "rawSql": "WITH base AS (\n  SELECT m.ingest_ts,\n         m.point_id,\n         m.value_num,\n         row_number() OVER (PARTITION BY m.point_id ORDER BY m.ingest_ts) AS rn,\n         count(*) OVER (PARTITION BY m.point_id) AS total_rows\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), sampled AS (\n  SELECT ingest_ts AS \"time\", point_id, value_num AS value\n  FROM base\n  WHERE total_rows <= 2000\n     OR rn = 1\n     OR rn = total_rows\n     OR (rn % GREATEST(1::bigint, ceil(total_rows / 1000.0)::bigint)) = 0\n)\nSELECT s.\"time\",\n       CASE WHEN s.point_id = ${inlet_point_id:sqlstring} THEN '入口' ELSE '出口' END AS metric,\n       s.value\nFROM sampled s\nORDER BY s.\"time\";",
+               "rawSql": "WITH base AS (\n  SELECT m.ingest_ts,\n         m.point_id,\n         m.value_num,\n         row_number() OVER (PARTITION BY m.point_id ORDER BY m.ingest_ts) AS rn,\n         count(*) OVER (PARTITION BY m.point_id) AS total_rows\n  FROM admin_api.v_point_metric_effective m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.metric = ${metric:sqlstring}\n    AND EXISTS (\n      SELECT 1 FROM metric_dict md\n      WHERE md.metric = m.metric\n        AND md.visible IS TRUE\n    )\n    AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), sampled AS (\n  SELECT ingest_ts AS \"time\", point_id, value_num AS value\n  FROM base\n  WHERE total_rows <= 2000\n     OR rn = 1\n     OR rn = total_rows\n     OR (rn % GREATEST(1::bigint, ceil(total_rows / 1000.0)::bigint)) = 0\n)\nSELECT s.\"time\",\n       CASE WHEN s.point_id = ${inlet_point_id:sqlstring} THEN '入口' ELSE '出口' END AS metric,\n       s.value\nFROM sampled s\nORDER BY s.\"time\";",
                "refId": "A"
             }
          ],
@@ -676,14 +676,14 @@
                "value": "temperature"
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "SELECT md.metric AS __value, COALESCE(md.display_name, md.metric) AS __text FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL ORDER BY md.metric;",
+            "definition": "WITH metrics AS (\n  SELECT DISTINCT v.metric\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), named AS (\n  SELECT m.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), m.metric) AS metric_text\n  FROM metrics m\n  LEFT JOIN metric_dict md ON md.metric = m.metric\n)\nSELECT metric AS __value,\n       metric_text AS __text\nFROM named\nORDER BY metric;",
             "hide": 2,
             "includeAll": false,
             "label": "当前指标",
             "multi": false,
             "name": "metric",
             "options": [ ],
-            "query": "SELECT md.metric AS __value, COALESCE(md.display_name, md.metric) AS __text FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL ORDER BY md.metric;",
+            "query": "WITH metrics AS (\n  SELECT DISTINCT v.metric\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), named AS (\n  SELECT m.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), m.metric) AS metric_text\n  FROM metrics m\n  LEFT JOIN metric_dict md ON md.metric = m.metric\n)\nSELECT metric AS __value,\n       metric_text AS __text\nFROM named\nORDER BY metric;",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": false,
@@ -734,13 +734,13 @@
                "value": "86400"
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "SELECT COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __value\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
+            "definition": "SELECT COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __value\nFROM admin_api.v_point_metric_effective m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
             "hide": 2,
             "includeAll": false,
             "multi": false,
             "name": "candle_span_sec",
             "options": [ ],
-            "query": "SELECT COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __value\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
+            "query": "SELECT COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           1::bigint,\n           ceil(extract(epoch FROM (max(m.ingest_ts) - min(m.ingest_ts))))::bigint\n         ),\n         86400::bigint\n       )::text AS __value\nFROM admin_api.v_point_metric_effective m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": true,
@@ -754,13 +754,13 @@
                "value": "0"
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "SELECT COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __value\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
+            "definition": "SELECT COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __value\nFROM admin_api.v_point_metric_effective m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
             "hide": 2,
             "includeAll": false,
             "multi": false,
             "name": "candle_lag_sec",
             "options": [ ],
-            "query": "SELECT COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __value\nFROM metric_sample m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
+            "query": "SELECT COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __text,\n       COALESCE(\n         GREATEST(\n           0::bigint,\n           ceil(extract(epoch FROM (now() - max(m.ingest_ts))))::bigint\n         ),\n         0::bigint\n       )::text AS __value\nFROM admin_api.v_point_metric_effective m\nWHERE m.plant_id = ${plant_id:sqlstring}\n  AND m.metric = ${metric:sqlstring}\n  AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n  AND EXISTS (\n    SELECT 1\n    FROM metric_dict md\n    WHERE md.metric = m.metric\n      AND md.visible IS TRUE\n  );",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": true,
@@ -814,14 +814,14 @@
                "value": "1"
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "SELECT gs::text AS __text, gs::text AS __value FROM generate_series(1, GREATEST(1, ((SELECT COUNT(*) FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL) + 4) / 5)) AS gs;",
+            "definition": "WITH metrics AS (\n  SELECT count(DISTINCT v.metric) AS metric_count\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n)\nSELECT gs::text AS __text,\n       gs::text AS __value\nFROM metrics,\n     generate_series(1, GREATEST(1, ((metric_count + 4) / 5))) AS gs;",
             "hide": 2,
             "includeAll": false,
             "label": "均值页",
             "multi": false,
             "name": "mean_page",
             "options": [ ],
-            "query": "SELECT gs::text AS __text, gs::text AS __value FROM generate_series(1, GREATEST(1, ((SELECT COUNT(*) FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL) + 4) / 5)) AS gs;",
+            "query": "WITH metrics AS (\n  SELECT count(DISTINCT v.metric) AS metric_count\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n)\nSELECT gs::text AS __text,\n       gs::text AS __value\nFROM metrics,\n     generate_series(1, GREATEST(1, ((metric_count + 4) / 5))) AS gs;",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": false,
@@ -835,13 +835,13 @@
                "value": "1"
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "SELECT GREATEST(1, ((COUNT(*) + 4) / 5))::text AS __text, GREATEST(1, ((COUNT(*) + 4) / 5))::text AS __value FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL;",
+            "definition": "WITH metrics AS (\n  SELECT count(DISTINCT v.metric) AS metric_count\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n)\nSELECT GREATEST(1, ((metric_count + 4) / 5))::text AS __text,\n       GREATEST(1, ((metric_count + 4) / 5))::text AS __value\nFROM metrics;",
             "hide": 2,
             "includeAll": false,
             "multi": false,
             "name": "mean_page_total",
             "options": [ ],
-            "query": "SELECT GREATEST(1, ((COUNT(*) + 4) / 5))::text AS __text, GREATEST(1, ((COUNT(*) + 4) / 5))::text AS __value FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL;",
+            "query": "WITH metrics AS (\n  SELECT count(DISTINCT v.metric) AS metric_count\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n)\nSELECT GREATEST(1, ((metric_count + 4) / 5))::text AS __text,\n       GREATEST(1, ((metric_count + 4) / 5))::text AS __value\nFROM metrics;",
             "refresh": 2,
             "regex": "",
             "skipUrlSync": true,
@@ -895,13 +895,13 @@
                "value": "$__all"
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), md_named AS (\n  SELECT metric,\n         metric_text,\n         COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM md_base\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM md_named\nORDER BY metric\nLIMIT 5 OFFSET (((${mean_page:sqlstring})::int - 1) * 5);",
+            "definition": "WITH metrics AS (\n  SELECT DISTINCT v.metric\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), named AS (\n  SELECT m.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), m.metric) AS metric_text,\n         COUNT(*) OVER (PARTITION BY COALESCE(NULLIF(btrim(md.display_name), ''), m.metric)) AS text_dup_count\n  FROM metrics m\n  LEFT JOIN metric_dict md ON md.metric = m.metric\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM named\nORDER BY metric\nLIMIT 5 OFFSET (((${mean_page:sqlstring})::int - 1) * 5);",
             "hide": 2,
             "includeAll": true,
             "multi": false,
             "name": "mean_metric_page",
             "options": [ ],
-            "query": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), md_named AS (\n  SELECT metric,\n         metric_text,\n         COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM md_base\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM md_named\nORDER BY metric\nLIMIT 5 OFFSET (((${mean_page:sqlstring})::int - 1) * 5);",
+            "query": "WITH metrics AS (\n  SELECT DISTINCT v.metric\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), named AS (\n  SELECT m.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), m.metric) AS metric_text,\n         COUNT(*) OVER (PARTITION BY COALESCE(NULLIF(btrim(md.display_name), ''), m.metric)) AS text_dup_count\n  FROM metrics m\n  LEFT JOIN metric_dict md ON md.metric = m.metric\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM named\nORDER BY metric\nLIMIT 5 OFFSET (((${mean_page:sqlstring})::int - 1) * 5);",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": true,
@@ -915,13 +915,13 @@
                "value": "$__all"
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "SELECT md.metric AS __value, COALESCE(md.display_name, md.metric) AS __text FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL ORDER BY md.metric;",
+            "definition": "WITH metrics AS (\n  SELECT DISTINCT v.metric\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), named AS (\n  SELECT m.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), m.metric) AS metric_text\n  FROM metrics m\n  LEFT JOIN metric_dict md ON md.metric = m.metric\n)\nSELECT metric AS __value,\n       metric_text AS __text\nFROM named\nORDER BY metric;",
             "hide": 2,
             "includeAll": true,
             "multi": true,
             "name": "metric_cards",
             "options": [ ],
-            "query": "SELECT md.metric AS __value, COALESCE(md.display_name, md.metric) AS __text FROM metric_dict md WHERE md.visible IS TRUE AND NULLIF(btrim(md.metric), '') IS NOT NULL ORDER BY md.metric;",
+            "query": "WITH metrics AS (\n  SELECT DISTINCT v.metric\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), named AS (\n  SELECT m.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), m.metric) AS metric_text\n  FROM metrics m\n  LEFT JOIN metric_dict md ON md.metric = m.metric\n)\nSELECT metric AS __value,\n       metric_text AS __text\nFROM named\nORDER BY metric;",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": false,
@@ -935,13 +935,13 @@
                "value": ""
             },
             "datasource": "TimescaleDB-RO",
-            "definition": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode})' AS link\n  FROM md_base\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
+            "definition": "WITH metrics AS (\n  SELECT DISTINCT v.metric\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), named AS (\n  SELECT m.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), m.metric) AS metric_text\n  FROM metrics m\n  LEFT JOIN metric_dict md ON md.metric = m.metric\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode})' AS link\n  FROM named\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
             "hide": 2,
             "includeAll": false,
             "multi": false,
             "name": "metric_switch_md",
             "options": [ ],
-            "query": "WITH md_base AS (\n  SELECT md.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) AS metric_text\n  FROM metric_dict md\n  WHERE md.visible IS TRUE\n    AND NULLIF(btrim(md.metric), '') IS NOT NULL\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode})' AS link\n  FROM md_base\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
+            "query": "WITH metrics AS (\n  SELECT DISTINCT v.metric\n  FROM admin_api.v_point_metric_effective v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n), named AS (\n  SELECT m.metric,\n         COALESCE(NULLIF(btrim(md.display_name), ''), m.metric) AS metric_text\n  FROM metrics m\n  LEFT JOIN metric_dict md ON md.metric = m.metric\n), links AS (\n  SELECT '[' || metric_text || '](/d/iot-v1-plant-monitor?var-plant_id=${plant_id:percentencode}&var-metric=' || metric || '&var-agg=${agg:percentencode}&var-mean_page=${mean_page:percentencode})' AS link\n  FROM named\n  ORDER BY metric\n)\nSELECT COALESCE(string_agg(link, ' · '), '无可选指标') AS __text,\n       COALESCE(string_agg(link, ' · '), '无可选指标') AS __value\nFROM links;",
             "refresh": 1,
             "regex": "",
             "skipUrlSync": true,

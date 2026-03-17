@@ -96,7 +96,7 @@
         {
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH base AS (\n  SELECT to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300) AS bucket_ts,\n         m.point_id,\n         m.value_num\n  FROM metric_sample m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n    AND m.metric IN (${mean_metric_page:sqlstring})\n    AND m.ingest_ts >= now() - interval '24 hours'\n    AND m.ingest_ts <= now()\n)\nSELECT bucket_ts AS \"time\",\n       avg(CASE WHEN point_id = ${inlet_point_id:sqlstring} THEN value_num END) AS \"入口\",\n       avg(CASE WHEN point_id = ${outlet_point_id:sqlstring} THEN value_num END) AS \"出口\"\nFROM base\nGROUP BY bucket_ts\nORDER BY bucket_ts;",
+          "rawSql": "WITH base AS (\n  SELECT to_timestamp(floor(extract(epoch FROM m.ingest_ts) / 300) * 300) AS bucket_ts,\n         m.point_id,\n         m.value_num\n  FROM admin_api.v_point_metric_effective m\n  WHERE m.plant_id = ${plant_id:sqlstring}\n    AND m.point_id IN (${inlet_point_id:sqlstring}, ${outlet_point_id:sqlstring})\n    AND m.metric IN (${mean_metric_page:sqlstring})\n    AND m.ingest_ts >= now() - interval '24 hours'\n    AND m.ingest_ts <= now()\n)\nSELECT bucket_ts AS \"time\",\n       avg(CASE WHEN point_id = ${inlet_point_id:sqlstring} THEN value_num END) AS \"入口\",\n       avg(CASE WHEN point_id = ${outlet_point_id:sqlstring} THEN value_num END) AS \"出口\"\nFROM base\nGROUP BY bucket_ts\nORDER BY bucket_ts;",
           "refId": "A"
         }
       ],

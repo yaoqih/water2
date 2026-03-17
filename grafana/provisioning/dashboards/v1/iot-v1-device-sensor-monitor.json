@@ -1,0 +1,468 @@
+{
+   "annotations": {
+      "list": [
+         {
+            "builtIn": 1,
+            "datasource": {
+               "type": "grafana",
+               "uid": "-- Grafana --"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+         }
+      ]
+   },
+   "editable": true,
+   "id": null,
+   "panels": [
+      {
+         "gridPos": {
+            "h": 2,
+            "w": 24,
+            "x": 0,
+            "y": 0
+         },
+         "id": 1,
+         "libraryPanel": {
+            "name": "IoT Viewer Navigation",
+            "uid": "lib_iot_view_nav"
+         },
+         "options": {
+            "content": "[🏠 总览](/d/iot-v1-admin-home) · [🧾 导出](/d/iot-v1-admin-export) · [📈 监测大屏](/d/iot-v1-plant-monitor) · [📟 设备监控](/d/iot-v1-device-sensor-monitor)",
+            "mode": "markdown"
+         },
+         "title": "导航",
+         "type": "text"
+      },
+      {
+         "gridPos": {
+            "h": 2,
+            "w": 24,
+            "x": 0,
+            "y": 2
+         },
+         "id": 2,
+         "options": {
+            "content": "> **通用设备监控**：${plant_id:text} · ${point_id:text} · `${device_id}`\n\n每个指标占一行：左侧当前值，中间更新距今，右侧趋势图；时间范围由右上角时间选择器控制。",
+            "mode": "markdown"
+         },
+         "title": "设备上下文",
+         "type": "text"
+      },
+      {
+         "datasource": "TimescaleDB-RO",
+         "fieldConfig": {
+            "defaults": {
+               "custom": {
+                  "align": "left",
+                  "cellOptions": {
+                     "type": "auto"
+                  },
+                  "inspect": false
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 5,
+            "w": 24,
+            "x": 0,
+            "y": 4
+         },
+         "id": 3,
+         "options": {
+            "footer": {
+               "reducer": [
+                  "sum"
+               ],
+               "show": false
+            },
+            "showHeader": true
+         },
+         "targets": [
+            {
+               "datasource": "TimescaleDB-RO",
+               "editorMode": "code",
+               "format": "table",
+               "rawQuery": true,
+               "rawSql": "WITH latest AS (\n  SELECT *\n  FROM admin_api.v_device_metric_latest v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id = ${point_id:sqlstring}\n    AND v.device_id = ${device_id:sqlstring}\n    AND v.visible IS DISTINCT FROM false\n)\nSELECT\n  COALESCE(max(plant_name), ${plant_id:sqlstring}) AS \"厂站\",\n  COALESCE(max(point_name), ${point_id:sqlstring}) AS \"点位\",\n  COALESCE(max(point_type), '') AS \"点位类型\",\n  ${device_id:sqlstring} AS \"设备\",\n  max(report_interval_sec) AS \"上报周期(s)\",\n  COALESCE(max(align_mode), '') AS \"对齐方式\",\n  COALESCE(bool_and(COALESCE(enabled, TRUE)), TRUE) AS \"启用\",\n  max(last_seen_at) AS \"设备最近在线\",\n  max(ingest_ts) AS \"最近指标时间\",\n  count(*) AS \"指标数\",\n  sum(CASE WHEN is_fresh THEN 1 ELSE 0 END) AS \"新鲜指标数\",\n  string_agg(DISTINCT topic, ', ' ORDER BY topic) FILTER (WHERE COALESCE(topic, '') <> '') AS \"Topic\"\nFROM latest;\n",
+               "refId": "A",
+               "sql": {
+                  "columns": [
+                     {
+                        "parameters": [ ],
+                        "type": "function"
+                     }
+                  ],
+                  "groupBy": [
+                     {
+                        "property": {
+                           "type": "string"
+                        },
+                        "type": "groupBy"
+                     }
+                  ],
+                  "limit": 50
+               }
+            }
+         ],
+         "title": "设备概览",
+         "type": "table"
+      },
+      {
+         "datasource": "TimescaleDB-RO",
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 3,
+               "noValue": "暂无",
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "#73BF69",
+                        "value": null
+                     }
+                  ]
+               }
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 6,
+            "w": 5,
+            "x": 0,
+            "y": 9
+         },
+         "id": 10,
+         "options": {
+            "colorMode": "none",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "/^value$/",
+               "values": false
+            },
+            "textMode": "value"
+         },
+         "repeat": "metric_cards",
+         "repeatDirection": "v",
+         "targets": [
+            {
+               "datasource": "TimescaleDB-RO",
+               "editorMode": "code",
+               "format": "table",
+               "rawQuery": true,
+               "rawSql": "SELECT round(v.value_num::numeric, 3) AS value\nFROM admin_api.v_device_metric_latest v\nWHERE v.plant_id = ${plant_id:sqlstring}\n  AND v.point_id = ${point_id:sqlstring}\n  AND v.device_id = ${device_id:sqlstring}\n  AND v.metric = ${metric_cards:sqlstring}\n  AND v.visible IS DISTINCT FROM false\nLIMIT 1;\n",
+               "refId": "A",
+               "sql": {
+                  "columns": [
+                     {
+                        "parameters": [ ],
+                        "type": "function"
+                     }
+                  ],
+                  "groupBy": [
+                     {
+                        "property": {
+                           "type": "string"
+                        },
+                        "type": "groupBy"
+                     }
+                  ],
+                  "limit": 20
+               }
+            }
+         ],
+         "title": "${metric_cards:text}",
+         "type": "stat"
+      },
+      {
+         "datasource": "TimescaleDB-RO",
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "noValue": "暂无更新",
+               "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                     {
+                        "color": "#73BF69",
+                        "value": null
+                     },
+                     {
+                        "color": "#F2CC0C",
+                        "value": 60
+                     },
+                     {
+                        "color": "#E24D42",
+                        "value": 120
+                     }
+                  ]
+               },
+               "unit": "s"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 6,
+            "w": 4,
+            "x": 5,
+            "y": 9
+         },
+         "id": 15,
+         "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+               "calcs": [
+                  "lastNotNull"
+               ],
+               "fields": "/^value$/",
+               "values": false
+            },
+            "textMode": "value"
+         },
+         "repeat": "metric_cards",
+         "repeatDirection": "v",
+         "targets": [
+            {
+               "datasource": "TimescaleDB-RO",
+               "editorMode": "code",
+               "format": "table",
+               "rawQuery": true,
+               "rawSql": "WITH latest AS (\n  SELECT v.freshness_sec\n  FROM admin_api.v_device_metric_latest v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id = ${point_id:sqlstring}\n    AND v.device_id = ${device_id:sqlstring}\n    AND v.metric = ${metric_cards:sqlstring}\n    AND v.visible IS DISTINCT FROM false\n  LIMIT 1\n)\nSELECT freshness_sec AS value\nFROM latest;\n",
+               "refId": "A",
+               "sql": {
+                  "columns": [
+                     {
+                        "parameters": [ ],
+                        "type": "function"
+                     }
+                  ],
+                  "groupBy": [
+                     {
+                        "property": {
+                           "type": "string"
+                        },
+                        "type": "groupBy"
+                     }
+                  ],
+                  "limit": 20
+               }
+            }
+         ],
+         "title": "更新距今",
+         "type": "stat"
+      },
+      {
+         "datasource": "TimescaleDB-RO",
+         "fieldConfig": {
+            "defaults": {
+               "color": {
+                  "mode": "palette-classic"
+               },
+               "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "drawStyle": "line",
+                  "fillOpacity": 8,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                     "legend": false,
+                     "tooltip": false,
+                     "viz": false
+                  },
+                  "lineInterpolation": "smooth",
+                  "lineWidth": 2,
+                  "pointSize": 2,
+                  "scaleDistribution": {
+                     "type": "linear"
+                  },
+                  "showPoints": "never",
+                  "spanNulls": true,
+                  "stacking": {
+                     "group": "A",
+                     "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                     "mode": "off"
+                  }
+               },
+               "decimals": 3,
+               "noValue": "暂无"
+            },
+            "overrides": [ ]
+         },
+         "gridPos": {
+            "h": 6,
+            "w": 15,
+            "x": 9,
+            "y": 9
+         },
+         "id": 20,
+         "options": {
+            "legend": {
+               "calcs": [
+                  "lastNotNull",
+                  "min",
+                  "max"
+               ],
+               "displayMode": "list",
+               "placement": "right"
+            },
+            "tooltip": {
+               "mode": "single",
+               "sort": "none"
+            }
+         },
+         "repeat": "metric_cards",
+         "repeatDirection": "v",
+         "targets": [
+            {
+               "datasource": "TimescaleDB-RO",
+               "editorMode": "code",
+               "format": "time_series",
+               "rawQuery": true,
+               "rawSql": "SELECT\n  v.ingest_ts AS \"time\",\n  v.value_num AS \"value\"\nFROM admin_api.v_device_metric_series v\nWHERE v.plant_id = ${plant_id:sqlstring}\n  AND v.point_id = ${point_id:sqlstring}\n  AND v.device_id = ${device_id:sqlstring}\n  AND v.metric = ${metric_cards:sqlstring}\n  AND v.visible IS DISTINCT FROM false\n  AND $__timeFilter(v.ingest_ts)\nORDER BY v.ingest_ts;\n",
+               "refId": "A",
+               "sql": {
+                  "columns": [
+                     {
+                        "parameters": [ ],
+                        "type": "function"
+                     }
+                  ],
+                  "groupBy": [
+                     {
+                        "property": {
+                           "type": "string"
+                        },
+                        "type": "groupBy"
+                     }
+                  ],
+                  "limit": 5000
+               }
+            }
+         ],
+         "title": "${metric_cards:text} 趋势",
+         "type": "timeseries"
+      }
+   ],
+   "refresh": "30s",
+   "schemaVersion": 39,
+   "tags": [
+      "iot",
+      "viewer",
+      "device",
+      "sensor"
+   ],
+   "templating": {
+      "list": [
+         {
+            "current": {
+               "selected": false,
+               "text": "",
+               "value": ""
+            },
+            "datasource": "TimescaleDB-RO",
+            "definition": "SELECT p.plant_id AS __value,\n       COALESCE(NULLIF(btrim(p.plant_name), ''), p.plant_id) AS __text\nFROM plant p\nORDER BY __text;\n",
+            "hide": 0,
+            "includeAll": false,
+            "label": "厂站",
+            "multi": false,
+            "name": "plant_id",
+            "options": [ ],
+            "query": "SELECT p.plant_id AS __value,\n       COALESCE(NULLIF(btrim(p.plant_name), ''), p.plant_id) AS __text\nFROM plant p\nORDER BY __text;\n",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "current": {
+               "selected": false,
+               "text": "",
+               "value": ""
+            },
+            "datasource": "TimescaleDB-RO",
+            "definition": "SELECT pt.point_id AS __value,\n       CASE\n         WHEN NULLIF(btrim(COALESCE(pt.point_name, '')), '') IS NULL THEN pt.point_id || ' [' || pt.point_type || ']'\n         ELSE pt.point_name || ' [' || pt.point_type || ']'\n       END AS __text\nFROM point pt\nWHERE pt.plant_id = ${plant_id:sqlstring}\nORDER BY __text;\n",
+            "hide": 0,
+            "includeAll": false,
+            "label": "点位",
+            "multi": false,
+            "name": "point_id",
+            "options": [ ],
+            "query": "SELECT pt.point_id AS __value,\n       CASE\n         WHEN NULLIF(btrim(COALESCE(pt.point_name, '')), '') IS NULL THEN pt.point_id || ' [' || pt.point_type || ']'\n         ELSE pt.point_name || ' [' || pt.point_type || ']'\n       END AS __text\nFROM point pt\nWHERE pt.plant_id = ${plant_id:sqlstring}\nORDER BY __text;\n",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "current": {
+               "selected": false,
+               "text": "",
+               "value": ""
+            },
+            "datasource": "TimescaleDB-RO",
+            "definition": "SELECT d.device_id AS __value,\n       CASE\n         WHEN d.enabled IS TRUE THEN d.device_id\n         ELSE d.device_id || ' [disabled]'\n       END AS __text\nFROM device d\nWHERE d.point_id = ${point_id:sqlstring}\nORDER BY d.device_id;\n",
+            "hide": 0,
+            "includeAll": false,
+            "label": "设备",
+            "multi": false,
+            "name": "device_id",
+            "options": [ ],
+            "query": "SELECT d.device_id AS __value,\n       CASE\n         WHEN d.enabled IS TRUE THEN d.device_id\n         ELSE d.device_id || ' [disabled]'\n       END AS __text\nFROM device d\nWHERE d.point_id = ${point_id:sqlstring}\nORDER BY d.device_id;\n",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+         },
+         {
+            "current": {
+               "selected": true,
+               "text": "All",
+               "value": "$__all"
+            },
+            "datasource": "TimescaleDB-RO",
+            "definition": "WITH metrics AS (\n  SELECT DISTINCT\n    v.metric,\n    COALESCE(NULLIF(btrim(v.display_name), ''), v.metric) AS display_name,\n    NULLIF(btrim(COALESCE(v.unit, '')), '') AS unit\n  FROM admin_api.v_device_metric_latest v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id = ${point_id:sqlstring}\n    AND v.device_id = ${device_id:sqlstring}\n    AND v.visible IS DISTINCT FROM false\n), named AS (\n  SELECT\n    metric,\n    CASE\n      WHEN unit IS NULL THEN display_name\n      ELSE display_name || ' (' || unit || ')'\n    END AS metric_text\n  FROM metrics\n), dedup AS (\n  SELECT\n    metric,\n    metric_text,\n    COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM named\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM dedup\nORDER BY metric;\n",
+            "hide": 0,
+            "includeAll": true,
+            "label": "指标",
+            "multi": true,
+            "name": "metric_cards",
+            "options": [ ],
+            "query": "WITH metrics AS (\n  SELECT DISTINCT\n    v.metric,\n    COALESCE(NULLIF(btrim(v.display_name), ''), v.metric) AS display_name,\n    NULLIF(btrim(COALESCE(v.unit, '')), '') AS unit\n  FROM admin_api.v_device_metric_latest v\n  WHERE v.plant_id = ${plant_id:sqlstring}\n    AND v.point_id = ${point_id:sqlstring}\n    AND v.device_id = ${device_id:sqlstring}\n    AND v.visible IS DISTINCT FROM false\n), named AS (\n  SELECT\n    metric,\n    CASE\n      WHEN unit IS NULL THEN display_name\n      ELSE display_name || ' (' || unit || ')'\n    END AS metric_text\n  FROM metrics\n), dedup AS (\n  SELECT\n    metric,\n    metric_text,\n    COUNT(*) OVER (PARTITION BY metric_text) AS text_dup_count\n  FROM named\n)\nSELECT metric AS __value,\n       CASE\n         WHEN text_dup_count > 1 THEN metric_text || ' [' || metric || ']'\n         ELSE metric_text\n       END AS __text\nFROM dedup\nORDER BY metric;\n",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 1,
+            "type": "query"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-6h",
+      "to": "now"
+   },
+   "timepicker": { },
+   "timezone": "browser",
+   "title": "IoT V1 · Device Sensor Monitor",
+   "uid": "iot-v1-device-sensor-monitor",
+   "version": 1
+}

@@ -4,8 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 JSONNET_FILE="${ROOT_DIR}/grafana/provisioning/dashboards/jsonnet/admin.main.jsonnet"
 MONITOR_JSONNET_FILE="${ROOT_DIR}/grafana/provisioning/dashboards/jsonnet/plant-monitor.main.jsonnet"
+DEVICE_MONITOR_JSONNET_FILE="${ROOT_DIR}/grafana/provisioning/dashboards/jsonnet/device-sensor-monitor.main.jsonnet"
 OUT_DIR="${ROOT_DIR}/grafana/provisioning/dashboards/v1"
 MONITOR_OUT_FILE="${OUT_DIR}/iot-v1-plant-monitor.json"
+DEVICE_MONITOR_OUT_FILE="${OUT_DIR}/iot-v1-device-sensor-monitor.json"
 
 need_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -47,8 +49,10 @@ validate_generated() {
     "${OUT_DIR}/iot-v1-admin-plant.json" \
     "${OUT_DIR}/iot-v1-admin-point.json" \
     "${OUT_DIR}/iot-v1-admin-device.json" \
+    "${OUT_DIR}/iot-v1-admin-source.json" \
     "${OUT_DIR}/iot-v1-admin-metric.json" \
-    "${MONITOR_OUT_FILE}"; do
+    "${MONITOR_OUT_FILE}" \
+    "${DEVICE_MONITOR_OUT_FILE}"; do
     if ! jq -e . "$file" > /dev/null; then
       echo "invalid json: ${file}" >&2
       failed=1
@@ -64,8 +68,9 @@ if [[ "${1:-}" == "--check" ]]; then
   failed=0
   new_file="$(mktemp)"
   new_monitor_file="$(mktemp)"
-  trap 'rm -f "$tmp_json" "$new_file" "$new_monitor_file"' EXIT
-  for pair in "plant:plant" "point:point" "device:device" "metric:metric"; do
+  new_device_monitor_file="$(mktemp)"
+  trap 'rm -f "$tmp_json" "$new_file" "$new_monitor_file" "$new_device_monitor_file"' EXIT
+  for pair in "plant:plant" "point:point" "device:device" "source:source" "metric:metric"; do
     key="${pair%%:*}"
     name="${pair##*:}"
     out_file="${OUT_DIR}/iot-v1-admin-${name}.json"
@@ -82,6 +87,12 @@ if [[ "${1:-}" == "--check" ]]; then
     failed=1
   fi
 
+  "$JSONNET_BIN" "$DEVICE_MONITOR_JSONNET_FILE" > "$new_device_monitor_file"
+  if ! cmp -s "$new_device_monitor_file" "${DEVICE_MONITOR_OUT_FILE}"; then
+    echo "outdated: ${DEVICE_MONITOR_OUT_FILE}" >&2
+    failed=1
+  fi
+
   if [[ "$failed" -ne 0 ]]; then
     exit 1
   fi
@@ -91,10 +102,15 @@ fi
 render_one plant plant
 render_one point point
 render_one device device
+render_one source source
 render_one metric metric
 tmp_monitor_file="$(mktemp)"
-trap 'rm -f "$tmp_json" "$tmp_monitor_file"' EXIT
+tmp_device_monitor_file="$(mktemp)"
+trap 'rm -f "$tmp_json" "$tmp_monitor_file" "$tmp_device_monitor_file"' EXIT
 "$JSONNET_BIN" "$MONITOR_JSONNET_FILE" > "${tmp_monitor_file}"
 mv "${tmp_monitor_file}" "${MONITOR_OUT_FILE}"
 echo "generated: ${MONITOR_OUT_FILE}"
+"$JSONNET_BIN" "$DEVICE_MONITOR_JSONNET_FILE" > "${tmp_device_monitor_file}"
+mv "${tmp_device_monitor_file}" "${DEVICE_MONITOR_OUT_FILE}"
+echo "generated: ${DEVICE_MONITOR_OUT_FILE}"
 validate_generated

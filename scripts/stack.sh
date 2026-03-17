@@ -267,6 +267,7 @@ GRANT SELECT ON TABLE
   public.raw_message,
   public.metric_sample,
   public.metric_dict,
+  public.point_metric_source,
   public.plant,
   public.point,
   public.device,
@@ -275,6 +276,10 @@ GRANT SELECT ON TABLE
   admin_api.v_point_list,
   admin_api.v_device_list,
   admin_api.v_metric_dict,
+  admin_api.v_point_metric_source,
+  admin_api.v_point_metric_effective,
+  admin_api.v_device_metric_latest,
+  admin_api.v_device_metric_series,
   admin_api.v_metric_export,
   admin_api.v_metric_export_fields,
   admin_api.v_device_conn_profile,
@@ -287,10 +292,12 @@ GRANT EXECUTE ON FUNCTION
   admin_api.upsert_device(TEXT, TEXT, INT, TEXT, BOOLEAN),
   admin_api.toggle_device(TEXT, BOOLEAN),
   admin_api.upsert_metric(TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, BOOLEAN),
+  admin_api.upsert_point_metric_source(TEXT, TEXT, TEXT),
   admin_api.delete_device(TEXT),
   admin_api.delete_point(TEXT, BOOLEAN),
   admin_api.delete_plant(TEXT, BOOLEAN),
-  admin_api.delete_metric(TEXT)
+  admin_api.delete_metric(TEXT),
+  admin_api.delete_point_metric_source(TEXT, TEXT)
 TO ${grafana_admin_user};
 
 GRANT EXECUTE ON FUNCTION
@@ -323,8 +330,10 @@ configure_grafana_nav_panel() {
     iot-v1-admin-plant
     iot-v1-admin-point
     iot-v1-admin-device
+    iot-v1-admin-source
     iot-v1-admin-metric
     iot-v1-admin-export
+    iot-v1-device-sensor-monitor
     iot-v1-plant-monitor
     iot-v1-plant-monitor-left24h
   )
@@ -453,7 +462,7 @@ configure_grafana_nav_panel() {
     local target_lib_uid
     local target_lib_name
     case "${uid}" in
-      iot-v1-admin-plant|iot-v1-admin-point|iot-v1-admin-device|iot-v1-admin-metric)
+      iot-v1-admin-plant|iot-v1-admin-point|iot-v1-admin-device|iot-v1-admin-source|iot-v1-admin-metric)
         target_folder_uid="${admin_folder_uid}"
         target_lib_uid="${lib_uid_admin}"
         target_lib_name="${lib_name_admin}"
@@ -727,6 +736,7 @@ configure_grafana_access_control() {
   local viewer_dashboard_uids=(
     iot-v1-admin-home
     iot-v1-admin-export
+    iot-v1-device-sensor-monitor
     iot-v1-plant-monitor
     iot-v1-plant-monitor-left24h
   )
@@ -734,6 +744,7 @@ configure_grafana_access_control() {
     iot-v1-admin-plant
     iot-v1-admin-point
     iot-v1-admin-device
+    iot-v1-admin-source
     iot-v1-admin-metric
   )
   local dashboard_uid

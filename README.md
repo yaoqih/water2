@@ -104,6 +104,7 @@ cp env/test.env.example env/test.env
   - `iot-v1-admin-plant`
   - `iot-v1-admin-point`
   - `iot-v1-admin-device`
+  - `iot-v1-admin-source`
   - `iot-v1-admin-metric`
   - `iot-v1-admin-export`
   - `iot-v1-plant-monitor`

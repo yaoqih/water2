@@ -29,6 +29,19 @@ CREATE TABLE IF NOT EXISTS device (
   created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'device_device_id_point_id_key'
+  ) THEN
+    ALTER TABLE device
+      ADD CONSTRAINT device_device_id_point_id_key UNIQUE (device_id, point_id);
+  END IF;
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS metric_dict (
   metric        TEXT PRIMARY KEY,
   display_name  TEXT NOT NULL,
@@ -43,6 +56,19 @@ CREATE TABLE IF NOT EXISTS metric_dict (
 
 ALTER TABLE metric_dict
   ADD COLUMN IF NOT EXISTS visible BOOLEAN NOT NULL DEFAULT true;
+
+CREATE TABLE IF NOT EXISTS point_metric_source (
+  point_id      TEXT NOT NULL REFERENCES point(point_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  metric        TEXT NOT NULL REFERENCES metric_dict(metric) ON DELETE CASCADE ON UPDATE CASCADE,
+  device_id     TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT point_metric_source_pkey PRIMARY KEY (point_id, metric),
+  CONSTRAINT point_metric_source_device_point_fkey
+    FOREIGN KEY (device_id, point_id)
+    REFERENCES device(device_id, point_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
 
 -- Baseline thresholds:
 -- - GB 3838-2002 (III class): pH 6~9, DO >= 5 mg/L, COD <= 20 mg/L, NH3-N <= 1.0 mg/L

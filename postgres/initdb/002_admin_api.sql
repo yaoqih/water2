@@ -126,6 +126,180 @@ SELECT
   visible
 FROM metric_dict;
 
+DROP VIEW IF EXISTS admin_api.v_point_metric_effective;
+DROP VIEW IF EXISTS admin_api.v_point_metric_source;
+
+CREATE OR REPLACE VIEW admin_api.v_point_metric_source AS
+WITH candidate AS (
+  SELECT
+    md.point_id,
+    md.metric,
+    count(*) AS candidate_device_count,
+    string_agg(md.device_id, ', ' ORDER BY md.device_id) AS candidate_device_ids
+  FROM (
+    SELECT DISTINCT ms.point_id, ms.metric, ms.device_id
+    FROM metric_sample ms
+  ) AS md
+  GROUP BY md.point_id, md.metric
+)
+SELECT
+  (s.point_id || '|' || s.metric) AS source_key,
+  pt.plant_id,
+  s.point_id,
+  COALESCE(pt.point_name, '') AS point_name,
+  pt.point_type,
+  s.metric,
+  COALESCE(md.display_name, s.metric) AS display_name,
+  s.device_id,
+  COALESCE(candidate.candidate_device_count, 0) AS candidate_device_count,
+  COALESCE(candidate.candidate_device_ids, '') AS candidate_device_ids,
+  s.created_at
+FROM point_metric_source s
+JOIN point pt ON pt.point_id = s.point_id
+LEFT JOIN metric_dict md ON md.metric = s.metric
+LEFT JOIN candidate
+  ON candidate.point_id = s.point_id
+ AND candidate.metric = s.metric;
+
+CREATE OR REPLACE VIEW admin_api.v_point_metric_effective AS
+WITH auto_single AS (
+  SELECT
+    md.point_id,
+    md.metric,
+    min(md.device_id) AS device_id
+  FROM (
+    SELECT DISTINCT ms.point_id, ms.metric, ms.device_id
+    FROM metric_sample ms
+  ) AS md
+  LEFT JOIN point_metric_source manual
+    ON manual.point_id = md.point_id
+   AND manual.metric = md.metric
+  WHERE manual.point_id IS NULL
+  GROUP BY md.point_id, md.metric
+  HAVING count(*) = 1
+), resolved AS (
+  SELECT s.point_id, s.metric, s.device_id, 'manual'::TEXT AS source_mode
+  FROM point_metric_source s
+  UNION ALL
+  SELECT a.point_id, a.metric, a.device_id, 'auto'::TEXT AS source_mode
+  FROM auto_single a
+)
+SELECT
+  ms.ingest_ts,
+  ms.plant_id,
+  p.plant_name,
+  p.timezone AS plant_timezone,
+  ms.point_id,
+  COALESCE(pt.point_name, '') AS point_name,
+  pt.point_type,
+  ms.device_id,
+  d.report_interval_sec,
+  d.align_mode,
+  ms.metric,
+  COALESCE(md.display_name, ms.metric) AS display_name,
+  md.unit,
+  md.alarm_low,
+  md.alarm_high,
+  ms.value_num,
+  rm.topic,
+  ms.raw_id,
+  resolved.source_mode
+FROM metric_sample ms
+JOIN resolved
+  ON resolved.point_id = ms.point_id
+ AND resolved.metric = ms.metric
+ AND resolved.device_id = ms.device_id
+LEFT JOIN plant p ON p.plant_id = ms.plant_id
+LEFT JOIN point pt ON pt.point_id = ms.point_id AND pt.plant_id = ms.plant_id
+LEFT JOIN device d ON d.device_id = ms.device_id AND d.point_id = ms.point_id
+LEFT JOIN metric_dict md ON md.metric = ms.metric
+LEFT JOIN raw_message rm ON rm.raw_id = ms.raw_id;
+
+DROP VIEW IF EXISTS admin_api.v_device_metric_latest;
+DROP VIEW IF EXISTS admin_api.v_device_metric_series;
+
+CREATE OR REPLACE VIEW admin_api.v_device_metric_series AS
+SELECT
+  ms.ingest_ts,
+  ms.plant_id,
+  p.plant_name,
+  p.timezone AS plant_timezone,
+  ms.point_id,
+  COALESCE(pt.point_name, '') AS point_name,
+  pt.point_type,
+  ms.device_id,
+  d.report_interval_sec,
+  d.align_mode,
+  d.enabled,
+  d.last_seen_at,
+  ms.metric,
+  COALESCE(md.display_name, ms.metric) AS display_name,
+  md.unit,
+  md.alarm_low,
+  md.alarm_high,
+  md.visible,
+  ms.value_num,
+  rm.topic,
+  ms.raw_id
+FROM metric_sample ms
+LEFT JOIN plant p ON p.plant_id = ms.plant_id
+LEFT JOIN point pt ON pt.point_id = ms.point_id AND pt.plant_id = ms.plant_id
+LEFT JOIN device d ON d.device_id = ms.device_id AND d.point_id = ms.point_id
+LEFT JOIN metric_dict md ON md.metric = ms.metric
+LEFT JOIN raw_message rm ON rm.raw_id = ms.raw_id;
+
+CREATE OR REPLACE VIEW admin_api.v_device_metric_latest AS
+WITH ranked AS (
+  SELECT
+    s.*,
+    row_number() OVER (
+      PARTITION BY s.plant_id, s.point_id, s.device_id, s.metric
+      ORDER BY s.ingest_ts DESC, s.raw_id DESC NULLS LAST
+    ) AS rn
+  FROM admin_api.v_device_metric_series s
+)
+SELECT
+  r.ingest_ts,
+  r.plant_id,
+  r.plant_name,
+  r.plant_timezone,
+  r.point_id,
+  r.point_name,
+  r.point_type,
+  r.device_id,
+  r.report_interval_sec,
+  r.align_mode,
+  r.enabled,
+  r.last_seen_at,
+  r.metric,
+  r.display_name,
+  r.unit,
+  r.alarm_low,
+  r.alarm_high,
+  r.visible,
+  r.value_num,
+  r.topic,
+  r.raw_id,
+  GREATEST(
+    0::bigint,
+    ceil(extract(epoch FROM (now() - r.ingest_ts)))::bigint
+  ) AS freshness_sec,
+  CASE
+    WHEN COALESCE(r.report_interval_sec, 0) > 0 THEN GREATEST((r.report_interval_sec * 2)::bigint, 60::bigint)
+    ELSE 300::bigint
+  END AS freshness_budget_sec,
+  (
+    GREATEST(
+      0::bigint,
+      ceil(extract(epoch FROM (now() - r.ingest_ts)))::bigint
+    ) <= CASE
+      WHEN COALESCE(r.report_interval_sec, 0) > 0 THEN GREATEST((r.report_interval_sec * 2)::bigint, 60::bigint)
+      ELSE 300::bigint
+    END
+  ) AS is_fresh
+FROM ranked r
+WHERE r.rn = 1;
+
 DROP VIEW IF EXISTS admin_api.v_metric_export_fields;
 DROP VIEW IF EXISTS admin_api.v_metric_export;
 
@@ -692,6 +866,85 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION admin_api.upsert_point_metric_source(
+  p_point_id TEXT,
+  p_metric TEXT,
+  p_device_id TEXT
+) RETURNS TABLE(
+  source_key TEXT,
+  point_id TEXT,
+  metric TEXT,
+  device_id TEXT,
+  created_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, admin_api
+AS $$
+DECLARE
+  v_before JSONB;
+  v_after JSONB;
+  v_source_key TEXT;
+BEGIN
+  p_point_id := NULLIF(trim(p_point_id), '');
+  p_metric := lower(NULLIF(trim(p_metric), ''));
+  p_device_id := NULLIF(trim(p_device_id), '');
+
+  IF p_point_id IS NULL THEN
+    RAISE EXCEPTION 'point_id is required';
+  END IF;
+  IF p_metric IS NULL THEN
+    RAISE EXCEPTION 'metric is required';
+  END IF;
+  IF p_device_id IS NULL THEN
+    RAISE EXCEPTION 'device_id is required';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM point pt WHERE pt.point_id = p_point_id) THEN
+    RAISE EXCEPTION 'point not found: %', p_point_id;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM metric_dict md WHERE md.metric = p_metric) THEN
+    RAISE EXCEPTION 'metric not found: %', p_metric;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM device d
+    WHERE d.device_id = p_device_id
+      AND d.point_id = p_point_id
+  ) THEN
+    RAISE EXCEPTION 'device % does not belong to point %', p_device_id, p_point_id;
+  END IF;
+
+  v_source_key := p_point_id || '|' || p_metric;
+
+  SELECT to_jsonb(s) INTO v_before
+  FROM point_metric_source s
+  WHERE s.point_id = p_point_id
+    AND s.metric = p_metric;
+
+  INSERT INTO point_metric_source(point_id, metric, device_id)
+  VALUES (p_point_id, p_metric, p_device_id)
+  ON CONFLICT ON CONSTRAINT point_metric_source_pkey DO UPDATE
+    SET device_id = EXCLUDED.device_id;
+
+  SELECT to_jsonb(s) INTO v_after
+  FROM point_metric_source s
+  WHERE s.point_id = p_point_id
+    AND s.metric = p_metric;
+
+  PERFORM admin_api.write_audit('upsert', 'point_metric_source', v_source_key, v_before, v_after);
+
+  RETURN QUERY
+  SELECT (s.point_id || '|' || s.metric) AS source_key,
+         s.point_id,
+         s.metric,
+         s.device_id,
+         s.created_at
+  FROM point_metric_source s
+  WHERE s.point_id = p_point_id
+    AND s.metric = p_metric;
+END;
+$$;
+
 
 CREATE OR REPLACE FUNCTION admin_api.delete_device(
   p_device_id TEXT
@@ -910,6 +1163,53 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION admin_api.delete_point_metric_source(
+  p_point_id TEXT,
+  p_metric TEXT
+) RETURNS TABLE(
+  source_key TEXT,
+  deleted BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, admin_api
+AS $$
+DECLARE
+  v_before JSONB;
+  v_source_key TEXT;
+BEGIN
+  p_point_id := NULLIF(trim(p_point_id), '');
+  p_metric := lower(NULLIF(trim(p_metric), ''));
+
+  IF p_point_id IS NULL THEN
+    RAISE EXCEPTION 'point_id is required';
+  END IF;
+  IF p_metric IS NULL THEN
+    RAISE EXCEPTION 'metric is required';
+  END IF;
+
+  v_source_key := p_point_id || '|' || p_metric;
+
+  SELECT to_jsonb(s) INTO v_before
+  FROM point_metric_source s
+  WHERE s.point_id = p_point_id
+    AND s.metric = p_metric;
+
+  IF v_before IS NULL THEN
+    RAISE EXCEPTION 'point_metric_source not found: %', v_source_key;
+  END IF;
+
+  DELETE FROM point_metric_source s
+  WHERE s.point_id = p_point_id
+    AND s.metric = p_metric;
+
+  PERFORM admin_api.write_audit('delete', 'point_metric_source', v_source_key, v_before, NULL);
+
+  RETURN QUERY
+  SELECT v_source_key, true;
+END;
+$$;
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'iot_api_viewer') THEN
@@ -936,6 +1236,10 @@ GRANT SELECT ON
   admin_api.v_point_list,
   admin_api.v_device_list,
   admin_api.v_metric_dict,
+  admin_api.v_point_metric_source,
+  admin_api.v_point_metric_effective,
+  admin_api.v_device_metric_latest,
+  admin_api.v_device_metric_series,
   admin_api.v_metric_export,
   admin_api.v_metric_export_fields,
   admin_api.v_device_conn_profile,
@@ -949,10 +1253,12 @@ GRANT EXECUTE ON FUNCTION
   admin_api.upsert_device(TEXT, TEXT, INT, TEXT, BOOLEAN),
   admin_api.toggle_device(TEXT, BOOLEAN),
   admin_api.upsert_metric(TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, BOOLEAN),
+  admin_api.upsert_point_metric_source(TEXT, TEXT, TEXT),
   admin_api.delete_device(TEXT),
   admin_api.delete_point(TEXT, BOOLEAN),
   admin_api.delete_plant(TEXT, BOOLEAN),
-  admin_api.delete_metric(TEXT)
+  admin_api.delete_metric(TEXT),
+  admin_api.delete_point_metric_source(TEXT, TEXT)
 TO iot_api_editor;
 
 GRANT EXECUTE ON FUNCTION

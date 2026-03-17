@@ -43,6 +43,11 @@
     - 参考 `GB 3838-2002`（地表水 III 类）：`ph`、`dissolvedOxygen`、`cod`、`amnitro`
     - 参考 `GB 18918-2002`（城镇污水处理厂一级 A）：`ss`
     - `watetT/waterEC/turbidity/temperature` 使用工程告警范围（用于水质监测与设备健康异常检测）
+- `point_metric_source`
+  - PK: `(point_id, metric)`
+  - FK: `(device_id, point_id) -> device(device_id, point_id) ON DELETE CASCADE`
+  - 字段：`device_id`,`created_at`
+  - 说明：定义某个 `point_id + metric` 在监控页上的默认显示来源设备
 
 ### 3.2 数据表
 
@@ -95,10 +100,26 @@
 - `admin_api.v_point_list`
 - `admin_api.v_device_list`
 - `admin_api.v_metric_dict`
+- `admin_api.v_point_metric_source`
+- `admin_api.v_point_metric_effective`
+- `admin_api.v_device_metric_latest`
+- `admin_api.v_device_metric_series`
 - `admin_api.v_metric_export`
 - `admin_api.v_metric_export_fields`
 - `admin_api.v_device_conn_profile`
 - `admin_api.v_audit_log`
+
+说明：
+
+- `admin_api.v_point_metric_effective`
+  - 用途：入口/出口等“点位级”监测页的有效显示来源视图
+  - 特点：会结合 `point_metric_source` 做单一展示源决策
+- `admin_api.v_device_metric_series`
+  - 用途：通用设备监控页的设备级时序读模型
+  - 特点：保留 `device_id` 维度，不做 `point_id + metric` 收敛
+- `admin_api.v_device_metric_latest`
+  - 用途：通用设备监控页的实时值读模型
+  - 特点：每个 `plant_id + point_id + device_id + metric` 仅保留最新一条，并附带 `freshness_sec/freshness_budget_sec/is_fresh`
 
 ### 4.3 控制面 RPC
 
@@ -107,6 +128,7 @@
   - `admin_api.upsert_point(...)`
   - `admin_api.upsert_device(...)`
   - `admin_api.upsert_metric(p_metric, p_display_name, p_unit, p_alarm_low, p_alarm_high, p_visible)`
+  - `admin_api.upsert_point_metric_source(p_point_id, p_metric, p_device_id)`
 - 状态切换：
   - `admin_api.toggle_device(...)`
 - Delete：
@@ -114,6 +136,7 @@
   - `admin_api.delete_point(p_point_id, p_force default false)`
   - `admin_api.delete_device(p_device_id)`
   - `admin_api.delete_metric(p_metric)`
+  - `admin_api.delete_point_metric_source(p_point_id, p_metric)`
 - Export：
   - `admin_api.export_metric_rows(p_fields, p_from, p_to, p_plant_id, p_point_id, p_device_id, p_metric, p_point_type, p_topic, p_limit)`
   - `p_plant_id/p_point_id/p_device_id/p_metric/p_point_type/p_topic` 支持逗号分隔多值

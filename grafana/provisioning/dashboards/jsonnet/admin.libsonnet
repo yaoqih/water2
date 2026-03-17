@@ -673,6 +673,76 @@ local specs = {
     status_after_form: true,
   },
 
+  source: {
+    uid: 'iot-v1-admin-source',
+    title: 'IoT V1 Admin · Metric Source',
+    tags: ['iot', 'admin', 'source', 'metric'],
+    version: 1,
+    object_cn: '指标来源',
+    status_cn: '指标来源',
+    edit_var: 'edit_source_key',
+    delete_var: 'row_delete_source_key',
+    last_var: 'last_source_action',
+    last_ts_var: 'last_source_action_ts',
+    edit_query: 'SELECT source_key FROM admin_api.v_point_metric_source ORDER BY plant_id, point_id, metric;',
+    table_id_field: 'source_key',
+    table_title: '指标来源绑定（决定监控页默认显示哪台设备）',
+    table_h: 10,
+    table_sql: |||
+  SELECT source_key,
+         plant_id,
+         point_id,
+         point_name,
+         point_type,
+         metric,
+         display_name,
+         device_id,
+         candidate_device_count,
+         candidate_device_ids,
+         created_at,
+         '编辑' AS edit,
+         '删除' AS delete
+  FROM admin_api.v_point_metric_source
+  ORDER BY plant_id, point_id, metric;
+|||
+    ,
+    form_title: '指标来源编辑（新增/修改）',
+    form_h: 10,
+    form_query_sql: "SELECT point_id, metric, device_id FROM point_metric_source WHERE point_id = split_part(${edit_source_key:sqlstring}, '|', 1) AND metric = split_part(${edit_source_key:sqlstring}, '|', 2) LIMIT 1;",
+    form_pick_sql: "SELECT '' AS value, '（新建）' AS label UNION ALL SELECT source_key AS value, (plant_id || ' / ' || point_id || ' / ' || metric) AS label FROM admin_api.v_point_metric_source ORDER BY label;",
+    extra_targets: [
+      { refId: 'C', rawSql: "SELECT pt.point_id AS value, (pt.plant_id || ' / ' || pt.point_id || CASE WHEN COALESCE(NULLIF(btrim(pt.point_name), ''), '') <> '' THEN ' (' || pt.point_name || ')' ELSE '' END) AS label FROM point pt ORDER BY pt.plant_id, pt.point_id;" },
+      { refId: 'D', rawSql: "SELECT md.metric AS value, (COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) || ' [' || md.metric || ']') AS label FROM metric_dict md ORDER BY md.metric;" },
+      { refId: 'E', rawSql: "SELECT d.device_id AS value, (pt.plant_id || ' / ' || d.point_id || ' / ' || d.device_id) AS label FROM device d JOIN point pt ON pt.point_id = d.point_id ORDER BY pt.plant_id, d.point_id, d.device_id;" },
+    ],
+    pick_id: 'source_pick',
+    reset_form_value: "{ point_id: '', metric: '', device_id: '' }",
+    elements: [
+      selectQueryElement('source_pick', '选择已有绑定', 'source_pick', 'B', 'source_key', '', false),
+      selectQueryElement('point_id', 'point_id', 'point_id', 'C', 'point_id', ''),
+      selectQueryElement('metric', 'metric', 'metric', 'D', 'metric', ''),
+      selectQueryElement('device_id', 'device_id', 'device_id', 'E', 'device_id', ''),
+    ],
+    get_payload_code: |||
+  const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;
+  const esc = (v) => String(v ?? '').trim().replace(/'/g, "''");
+  const point_id = esc(get('point_id'));
+  const metric = esc(get('metric')).toLowerCase();
+  const device_id = esc(get('device_id'));
+  if (!point_id || !metric || !device_id) throw new Error('point_id、metric、device_id 必填');
+  return { point_id, metric, device_id };
+|||
+    ,
+    update_raw_sql: "SELECT * FROM admin_api.upsert_point_metric_source('${payload.point_id}', '${payload.metric}', '${payload.device_id}');",
+    delete_confirm: "'确认删除指标来源绑定 ' + autoId + '？'",
+    delete_raw_sql: "\"SELECT * FROM admin_api.delete_point_metric_source(split_part(${row_delete_source_key:sqlstring}, '|', 1), split_part(${row_delete_source_key:sqlstring}, '|', 2));\"",
+    delete_object_field: 'source_key',
+    delete_detail_expr: "'级联数量 0'",
+    object_id_field: 'source_key',
+    status_panel_id: 8,
+    status_after_form: true,
+  },
+
   metric: {
     uid: 'iot-v1-admin-metric',
     title: 'IoT V1 Admin · Metric Dictionary',

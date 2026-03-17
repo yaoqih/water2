@@ -9,7 +9,7 @@
 当前已落地：
 
 - `admin_api` 控制面 schema（视图 + RPC + 审计）
-- Grafana 7 个页面（含导出页 + 监测大屏）
+- Grafana 9 个页面（含导出页 + 两个 Viewer 监测页）
 - PostgREST 管理 API（`x-admin-token` 鉴权）
 
 关键文件：
@@ -17,15 +17,17 @@
 - `postgres/initdb/002_admin_api.sql`
 - `grafana/provisioning/dashboards/v1/iot-v1-admin-home.json`
 - `grafana/provisioning/dashboards/v1/iot-v1-plant-monitor.json`
+- `grafana/provisioning/dashboards/v1/iot-v1-device-sensor-monitor.json`
 - `grafana/provisioning/dashboards/v1/iot-v1-admin-plant.json`
 - `grafana/provisioning/dashboards/v1/iot-v1-admin-point.json`
 - `grafana/provisioning/dashboards/v1/iot-v1-admin-device.json`
+- `grafana/provisioning/dashboards/v1/iot-v1-admin-source.json`
 - `grafana/provisioning/dashboards/v1/iot-v1-admin-metric.json`
 - `grafana/provisioning/dashboards/v1/iot-v1-admin-export.json`
 - `docker-compose.yml`
 - `scripts/stack.sh`
 
-## 2. 页面（7 页）
+## 2. 页面（9 页）
 
 Grafana 页面 UID：
 
@@ -48,23 +50,35 @@ Grafana 页面 UID：
 - 设备编辑面板：新增/更新
 - 支持下拉选择设备/点位并自动回填
 
-5) `iot-v1-admin-metric`（Metric Dictionary）
+5) `iot-v1-admin-source`（Metric Source）
+- 指标来源绑定列表（每行“编辑/删除”入口）
+- 维护 `point_id + metric -> device_id` 的默认显示绑定
+- 用于解决同一点位同指标多设备上报时 Grafana 默认显示来源冲突
+
+6) `iot-v1-admin-metric`（Metric Dictionary）
 - 指标字典列表（每行含“编辑/删除”入口）
 - 指标编辑面板：新增/更新
 - 支持下拉选择已有指标并自动回填
 
-6) `iot-v1-admin-export`（Export）
+7) `iot-v1-admin-export`（Export）
 - 字段字典（含关联字段）统一来自 `admin_api.v_metric_export_fields`
 - 导出预览支持按字段筛选（`plant/point/device/metric/point_type/topic` 支持多选）
 - 下载导出走后端固定 RPC：`admin_api.export_metric_rows(...)`（字段白名单 + 参数化过滤 + 逗号分隔多值过滤）
 - 导出行数支持“不限”（`p_limit <= 0` 时不设置 `LIMIT`）
 
-7) `iot-v1-plant-monitor`（Plant Monitor）
+8) `iot-v1-plant-monitor`（Plant Monitor）
 - 左上角厂站选择显示 `plant_name`（实际值为 `plant_id`），页面所有查询按 `plant_id` 过滤
 - 顶部展示厂站实时指标统计
 - 中部支持 5 分钟/小时/天/月周期切换
 - 左侧指标均值线分页列表（每页最多 5 项） + 右侧入口/出口同图对比与蜡烛图
 - 底部分列显示入口/出口告警信息
+
+9) `iot-v1-device-sensor-monitor`（Device Sensor Monitor）
+- 变量链：`plant -> point -> device`
+- 顶部展示设备概览（点位类型、上报周期、对齐方式、最近指标时间、指标数、Topic）
+- 每个指标各自一张“最新值”卡片
+- 每个指标各自一张“小折线图”，默认展示最近 6 小时，使用右上角时间选择器切换
+- 查询只依赖设备级读视图：`admin_api.v_device_metric_latest` / `admin_api.v_device_metric_series`
 
 > 页面顶部均提供互相跳转导航。
 
@@ -126,7 +140,7 @@ Grafana 页面 UID：
 
 - 默认查询走 `TimescaleDB-RO`
 - 管理页提交/删除动作走 `TimescaleDB-Admin`
-- 导出页与监测页只使用 `TimescaleDB-RO`
+- 导出页与 Viewer 监测页只使用 `TimescaleDB-RO`
 - 运行配置入口：`scripts/stack.sh configure --env <prod|test>`
 
 具体 DB 授权清单以 `docs/DATABASE_SCHEMA.md` 的“运行时账号与权限边界”为准。
@@ -164,6 +178,8 @@ Grafana 页面 UID：
 - `/v_point_list`
 - `/v_device_list`
 - `/v_metric_dict`
+- `/v_device_metric_latest`
+- `/v_device_metric_series`
 - `/v_metric_export`
 - `/v_metric_export_fields`
 - `/v_device_conn_profile`
@@ -246,6 +262,10 @@ curl -sS -X POST \
 # 读：导出字段字典
 curl -sS -H "x-admin-token: ${POSTGREST_ADMIN_TOKEN}" \
   "http://127.0.0.1:${POSTGREST_PORT}/v_metric_export_fields?order=field_order.asc"
+
+# 读：通用设备监控最新值
+curl -sS -H "x-admin-token: ${POSTGREST_ADMIN_TOKEN}" \
+  "http://127.0.0.1:${POSTGREST_PORT}/v_device_metric_latest?plant_id=eq.plant_cqbb_liaoning53&point_id=eq.pt_cqbb_liaoning53_inlet&device_id=eq.dev_cqbb_liaoning53_in_03&order=metric.asc"
 
 # 导出：CSV（字段可选 + 字段级筛选）
 curl -sS \

@@ -1,0 +1,540 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "libraryPanel": {
+        "name": "IoT Admin Navigation",
+        "uid": "lib_iot_admin_nav"
+      },
+      "options": {
+        "content": "[🏠 总览](/d/iot-v1-admin-home) · [🏭 厂站](/d/iot-v1-admin-plant) · [📍 点位](/d/iot-v1-admin-point) · [📟 设备](/d/iot-v1-admin-device) · [🧭 来源](/d/iot-v1-admin-source) · [📚 指标](/d/iot-v1-admin-metric)",
+        "mode": "markdown"
+      },
+      "title": "导航",
+      "type": "text"
+    },
+    {
+      "datasource": "TimescaleDB-RO",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "edit"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "编辑",
+                    "url": "/d/iot-v1-admin-source?var-edit_source_key=${__data.fields.source_key:percentencode}"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "编辑"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "delete"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": false,
+                    "title": "删除",
+                    "url": "/d/iot-v1-admin-source?var-edit_source_key=${__data.fields.source_key:percentencode}&var-row_delete_source_key=${__data.fields.source_key:percentencode}"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "删除"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 3,
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT source_key,\n       plant_id,\n       point_id,\n       point_name,\n       point_type,\n       metric,\n       display_name,\n       device_id,\n       candidate_device_count,\n       candidate_device_ids,\n       created_at,\n       '编辑' AS edit,\n       '删除' AS delete\nFROM admin_api.v_point_metric_source\nORDER BY plant_id, point_id, metric;\n",
+          "refId": "A"
+        }
+      ],
+      "title": "指标来源绑定（决定监控页默认显示哪台设备）",
+      "type": "table"
+    },
+    {
+      "datasource": "TimescaleDB-RO",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 4,
+      "options": {
+        "buttonGroup": {
+          "orientation": "center",
+          "size": "md"
+        },
+        "confirmModal": {
+          "body": "确认执行本次操作？",
+          "cancel": "取消",
+          "columns": {
+            "include": [
+              "name",
+              "newValue"
+            ],
+            "name": "字段",
+            "newValue": "值"
+          },
+          "confirm": "确认",
+          "elementDisplayMode": "all",
+          "title": "确认提交"
+        },
+        "elementValueChanged": "if (context.element.id === 'source_pick') {\n  const v = String(context.element.value ?? '').trim();\n  context.grafana.locationService.partial({'var-edit_source_key': v}, true);\n  const syncObj = {};\n  syncObj['source_pick'] = v;\n  context.panel.setFormValue(syncObj);\n  if (!v) {\n    context.panel.setFormValue({ point_id: '', metric: '', device_id: '' });\n  }\n  const focusPrimaryField = () => {\n    if (typeof document === 'undefined') return;\n    const selectors = [\n      'input[name=\"source_key\"]',\n      'textarea[name=\"source_key\"]',\n      'input[id=\"source_key\"]',\n      '[aria-label=\"source_key\"]',\n      '[data-testid*=\"source_key\"] input',\n    ];\n    for (const selector of selectors) {\n      const el = document.querySelector(selector);\n      if (el && typeof el.focus === 'function') {\n        el.focus();\n        if (typeof el.select === 'function') {\n          el.select();\n        }\n        break;\n      }\n    }\n  };\n  setTimeout(focusPrimaryField, 0);\n  setTimeout(focusPrimaryField, 120);\n}\n",
+        "elements": [
+          {
+            "fieldName": "source_pick",
+            "id": "source_pick",
+            "options": [],
+            "optionsSource": "Query",
+            "queryOptions": {
+              "label": "label",
+              "source": "B",
+              "value": "value"
+            },
+            "title": "选择已有绑定",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "point_id",
+            "id": "point_id",
+            "options": [],
+            "optionsSource": "Query",
+            "queryField": {
+              "label": "A:point_id",
+              "refId": "A",
+              "value": "point_id"
+            },
+            "queryOptions": {
+              "label": "label",
+              "source": "C",
+              "value": "value"
+            },
+            "title": "point_id",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "metric",
+            "id": "metric",
+            "options": [],
+            "optionsSource": "Query",
+            "queryField": {
+              "label": "A:metric",
+              "refId": "A",
+              "value": "metric"
+            },
+            "queryOptions": {
+              "label": "label",
+              "source": "D",
+              "value": "value"
+            },
+            "title": "metric",
+            "type": "select",
+            "value": ""
+          },
+          {
+            "fieldName": "device_id",
+            "id": "device_id",
+            "options": [],
+            "optionsSource": "Query",
+            "queryField": {
+              "label": "A:device_id",
+              "refId": "A",
+              "value": "device_id"
+            },
+            "queryOptions": {
+              "label": "label",
+              "source": "E",
+              "value": "value"
+            },
+            "title": "device_id",
+            "type": "select",
+            "value": ""
+          }
+        ],
+        "initial": {
+          "code": "const autoId = String('${row_delete_source_key}' ?? '').trim();\nif (!autoId) return;\nconst guardStore = (typeof window !== 'undefined')\n  ? (window.__iotAdminDeleteGuards = window.__iotAdminDeleteGuards || {})\n  : null;\nconst guardKey = 'row_delete_source_key:' + autoId;\nif (guardStore && guardStore[guardKey]) return;\nif (guardStore) {\n  guardStore[guardKey] = true;\n}\nconst releaseGuard = () => {\n  if (guardStore) {\n    delete guardStore[guardKey];\n  }\n};\nreturn (async () => {\n  try {\n    if (!confirm('确认删除指标来源绑定 ' + autoId + '？')) {\n      context.grafana.locationService.partial({'var-row_delete_source_key': '', 'var-edit_source_key': ''}, true);\n      return;\n    }\n    context.grafana.locationService.partial({'var-row_delete_source_key': ''}, true);\n    const dsName = context.panel.options?.update?.datasource || 'TimescaleDB-Admin';\n    const dsInfo = await context.grafana.backendService.get('/api/datasources/name/' + encodeURIComponent(dsName));\n    const uid = dsInfo?.uid;\n    if (!uid) throw new Error('未找到数据源: ' + dsName);\n    const rawSql = \"SELECT * FROM admin_api.delete_point_metric_source(split_part(${row_delete_source_key:sqlstring}, '|', 1), split_part(${row_delete_source_key:sqlstring}, '|', 2));\";\n    const body = {\n      queries: [{\n        refId: 'A',\n        datasource: { uid },\n        editorMode: 'code',\n        format: 'table',\n        rawQuery: true,\n        rawSql,\n        sql: { columns: [{ parameters: [], type: 'function' }], groupBy: [{ property: { type: 'string' }, type: 'groupBy' }], limit: 50 }\n      }],\n      from: 'now-5m',\n      to: 'now'\n    };\n    const queryResp = await context.grafana.backendService.post('/api/ds/query', body);\n    const result = queryResp?.results?.A;\n    if (result?.error) throw new Error(result.error);\n    const frame = result?.frames?.[0];\n    const row = {};\n    if (frame?.schema?.fields && Array.isArray(frame?.data?.values)) {\n      frame.schema.fields.forEach((f, idx) => { row[f.name] = frame.data.values[idx]?.[0]; });\n    }\n    const objectId = String(row.source_key ?? autoId).trim();\n    const detail = '级联数量 0';\n    const nowIso = new Date().toISOString();\n    context.grafana.notifySuccess(['删除成功', '🗑 已删除指标来源 ' + objectId + '，' + detail]);\n    context.grafana.locationService.partial({'var-row_delete_source_key': '', 'var-edit_source_key': '', 'var-last_source_action': '🗑 已删除指标来源 ' + objectId + '，' + detail, 'var-last_source_action_ts': nowIso}, true);\n  try {\n  if (typeof context.grafana.refresh === 'function') {\n    context.grafana.refresh();\n  }\n} catch (e) {}\n\n  } catch (error) {\n    context.grafana.locationService.partial({'var-row_delete_source_key': '', 'var-edit_source_key': ''}, true);\n    const msg = error?.message || error?.data?.message || error?.data?.results?.A?.error || error?.statusText || (typeof error === 'string' ? error : '');\n    context.grafana.notifyError(['删除失败', msg || '请检查关联关系或输入']);\n  } finally {\n    releaseGuard();\n  }\n})();\n",
+          "contentType": "application/json",
+          "getPayload": "return { rawSql: '', format: 'table' };",
+          "highlight": false,
+          "highlightColor": "red",
+          "method": "query",
+          "payload": {}
+        },
+        "layout": {
+          "orientation": "horizontal",
+          "padding": 10,
+          "sectionVariant": "default",
+          "variant": "single"
+        },
+        "reset": {
+          "icon": "process",
+          "text": "重置",
+          "variant": "secondary"
+        },
+        "resetAction": {
+          "code": "context.panel.initialRequest();",
+          "confirm": false,
+          "getPayload": "return {};",
+          "mode": "initial",
+          "payload": {}
+        },
+        "saveDefault": {
+          "icon": "save",
+          "text": "Save Default",
+          "variant": "hidden"
+        },
+        "submit": {
+          "icon": "save",
+          "text": "提交",
+          "variant": "primary"
+        },
+        "sync": true,
+        "update": {
+          "code": "const ok = context.panel.response && context.panel.response.state === 'Done';\nif (ok) {\n  const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\n  const objectId = String(get('source_key') ?? '').trim();\n  const nowIso = new Date().toISOString();\n  const msg = '💾 已保存指标来源 ' + (objectId || '-');\n  context.grafana.notifySuccess(['成功', msg]);\n  context.grafana.locationService.partial({\n    'var-last_source_action': msg,\n    'var-last_source_action_ts': nowIso,\n    'var-row_delete_source_key': '',\n    'var-edit_source_key': objectId || ''\n  }, true);\n\nlet refreshed = false;\ntry {\n  if (typeof context.grafana.refresh === 'function') {\n    context.grafana.refresh();\n    refreshed = true;\n  }\n} catch (e) {}\n\nsetTimeout(() => {\n  try {\n    if (context.grafana.locationService && typeof context.grafana.locationService.reload === 'function') {\n      context.grafana.locationService.reload();\n    } else if (!refreshed && typeof window !== 'undefined' && window.location) {\n      window.location.reload();\n    }\n  } catch (e) {}\n}, 100);\n\n} else {\n  context.grafana.notifyError(['失败', '请检查输入']);\n}\n",
+          "confirm": true,
+          "contentType": "application/json",
+          "datasource": "TimescaleDB-Admin",
+          "getPayload": "const get = (id) => context.panel.elements.find((e) => e.id === id)?.value;\nconst esc = (v) => String(v ?? '').trim().replace(/'/g, \"''\");\nconst point_id = esc(get('point_id'));\nconst metric = esc(get('metric')).toLowerCase();\nconst device_id = esc(get('device_id'));\nif (!point_id || !metric || !device_id) throw new Error('point_id、metric、device_id 必填');\nreturn { point_id, metric, device_id };\n",
+          "method": "datasource",
+          "payload": {
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT * FROM admin_api.upsert_point_metric_source('${payload.point_id}', '${payload.metric}', '${payload.device_id}');",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          },
+          "payloadMode": "custom"
+        },
+        "updateEnabled": "auto"
+      },
+      "pluginVersion": "6.3.1",
+      "targets": [
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT point_id, metric, device_id FROM point_metric_source WHERE point_id = split_part(${edit_source_key:sqlstring}, '|', 1) AND metric = split_part(${edit_source_key:sqlstring}, '|', 2) LIMIT 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        },
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT '' AS value, '（新建）' AS label UNION ALL SELECT source_key AS value, (plant_id || ' / ' || point_id || ' / ' || metric) AS label FROM admin_api.v_point_metric_source ORDER BY label;",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        },
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT pt.point_id AS value, (pt.plant_id || ' / ' || pt.point_id || CASE WHEN COALESCE(NULLIF(btrim(pt.point_name), ''), '') <> '' THEN ' (' || pt.point_name || ')' ELSE '' END) AS label FROM point pt ORDER BY pt.plant_id, pt.point_id;",
+          "refId": "C",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        },
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT md.metric AS value, (COALESCE(NULLIF(btrim(md.display_name), ''), md.metric) || ' [' || md.metric || ']') AS label FROM metric_dict md ORDER BY md.metric;",
+          "refId": "D",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        },
+        {
+          "datasource": "TimescaleDB-RO",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT d.device_id AS value, (pt.plant_id || ' / ' || d.point_id || ' / ' || d.device_id) AS label FROM device d JOIN point pt ON pt.point_id = d.point_id ORDER BY pt.plant_id, d.point_id, d.device_id;",
+          "refId": "E",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 500
+          }
+        }
+      ],
+      "title": "指标来源编辑（新增/修改）",
+      "type": "volkovlabs-form-panel"
+    },
+    {
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "id": 8,
+      "options": {
+        "content": "> **操作状态（指标来源）**：${last_source_action}  `${last_source_action_ts}`",
+        "mode": "markdown"
+      },
+      "title": "操作状态",
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "iot",
+    "admin",
+    "source",
+    "metric"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": "TimescaleDB-RO",
+        "definition": "SELECT source_key FROM admin_api.v_point_metric_source ORDER BY plant_id, point_id, metric;",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "edit_source_key",
+        "options": [],
+        "query": "SELECT source_key FROM admin_api.v_point_metric_source ORDER BY plant_id, point_id, metric;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "last_source_action",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "last_source_action_ts",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "hide": 2,
+        "label": "",
+        "name": "row_delete_source_key",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "IoT V1 Admin · Metric Source",
+  "uid": "iot-v1-admin-source",
+  "version": 1
+}

@@ -37,12 +37,9 @@ def _require_optional_int(definition: dict[str, object], key: str) -> int | None
     return value
 
 
-def _parse_modbus_match(device_id: str, definition: dict[str, object]) -> ModbusReadMatch | None:
-    raw_match = definition.get("modbus_match")
-    if raw_match is None:
-        return None
+def _parse_modbus_match_object(device_id: str, raw_match: object, key: str) -> ModbusReadMatch:
     if not isinstance(raw_match, dict):
-        raise ValueError(f"modbus_match for {device_id} must be an object")
+        raise ValueError(f"{key} for {device_id} must be an object")
 
     match = ModbusReadMatch(
         address=_require_optional_int(raw_match, "address"),
@@ -56,8 +53,28 @@ def _parse_modbus_match(device_id: str, definition: dict[str, object]) -> Modbus
         and match.start_register is None
         and match.register_count is None
     ):
-        raise ValueError(f"modbus_match for {device_id} must contain at least one field")
+        raise ValueError(f"{key} for {device_id} must contain at least one field")
     return match
+
+
+def _parse_modbus_matches(device_id: str, definition: dict[str, object]) -> tuple[ModbusReadMatch, ...] | None:
+    raw_match = definition.get("modbus_match")
+    raw_matches = definition.get("modbus_matches")
+    if raw_match is not None and raw_matches is not None:
+        raise ValueError(f"{device_id} cannot define both modbus_match and modbus_matches")
+
+    if raw_matches is not None:
+        if not isinstance(raw_matches, list) or not raw_matches:
+            raise ValueError(f"modbus_matches for {device_id} must be a non-empty array")
+        return tuple(
+            _parse_modbus_match_object(device_id, raw_item, "modbus_matches")
+            for raw_item in raw_matches
+        )
+
+    if raw_match is None:
+        return None
+
+    return (_parse_modbus_match_object(device_id, raw_match, "modbus_match"),)
 
 
 def _parse_publish_metrics(
@@ -152,22 +169,24 @@ def _validate_source_device_routing(profiles_by_source_device: dict[str, list[De
 
         seen_matches: set[tuple[int | None, int | None, int | None, int | None]] = set()
         for profile in profiles:
-            if profile.modbus_match is None:
+            matches = profile.query_matches
+            if not matches:
                 raise ValueError(
                     f"source_device_id {source_device_id} has multiple profiles; "
-                    f"profile {profile.device_id} must define modbus_match"
+                    f"profile {profile.device_id} must define modbus_match or modbus_matches"
                 )
-            signature = (
-                profile.modbus_match.address,
-                profile.modbus_match.function_code,
-                profile.modbus_match.start_register,
-                profile.modbus_match.register_count,
-            )
-            if signature in seen_matches:
-                raise ValueError(
-                    f"duplicate modbus_match for source_device_id {source_device_id}: {signature}"
+            for match in matches:
+                signature = (
+                    match.address,
+                    match.function_code,
+                    match.start_register,
+                    match.register_count,
                 )
-            seen_matches.add(signature)
+                if signature in seen_matches:
+                    raise ValueError(
+                        f"duplicate modbus_match for source_device_id {source_device_id}: {signature}"
+                    )
+                seen_matches.add(signature)
 
 
 def load_profiles(config_path: str | Path) -> ProfileRegistry:
@@ -189,12 +208,14 @@ def load_profiles(config_path: str | Path) -> ProfileRegistry:
         if profile_type not in PROFILE_DECODERS:
             raise ValueError(f"unsupported profile_type for {device_id}: {profile_type}")
 
+        modbus_matches = _parse_modbus_matches(device_id, definition)
         profile = DeviceProfile(
             device_id=device_id,
             profile_type=profile_type,
             sensor_range=definition.get("sensor_range"),
             source_device_id=_require_optional_text(definition, "source_device_id"),
-            modbus_match=_parse_modbus_match(device_id, definition),
+            modbus_match=modbus_matches[0] if modbus_matches and len(modbus_matches) == 1 else None,
+            modbus_matches=modbus_matches if modbus_matches and len(modbus_matches) > 1 else None,
             target_device_id=_require_optional_text(definition, "target_device_id"),
             publish_metrics=_parse_publish_metrics(device_id, profile_type, definition),
             metric_aliases=_parse_metric_aliases(device_id, profile_type, definition),

@@ -30,6 +30,7 @@ class DeviceProfile:
     sensor_range: int | float | None = None
     source_device_id: str | None = None
     modbus_match: ModbusReadMatch | None = None
+    modbus_matches: tuple[ModbusReadMatch, ...] | None = None
     target_device_id: str | None = None
     publish_metrics: tuple[str, ...] | None = None
     metric_aliases: dict[str, str] | None = None
@@ -42,10 +43,19 @@ class DeviceProfile:
     def input_device_id(self) -> str:
         return self.source_device_id or self.device_id
 
+    @property
+    def query_matches(self) -> tuple[ModbusReadMatch, ...]:
+        if self.modbus_matches is not None:
+            return self.modbus_matches
+        if self.modbus_match is not None:
+            return (self.modbus_match,)
+        return ()
+
     def matches_query(self, query: ReadQueryFrame) -> bool:
-        if self.modbus_match is None:
+        matches = self.query_matches
+        if not matches:
             return True
-        return self.modbus_match.matches(query)
+        return any(match.matches(query) for match in matches)
 
     def transform_metrics(self, metrics: dict[str, float]) -> dict[str, float]:
         allowed_metrics = set(self.publish_metrics) if self.publish_metrics is not None else None
@@ -104,6 +114,8 @@ def _decode_rs_cod(profile: DeviceProfile, registers: dict[int, bytes]) -> dict[
         metrics["temperature"] = _register_s16(registers, 1) / 10.0
     if 2 in registers:
         metrics["turbidity"] = _register_u16(registers, 2) / 10.0
+    if 16 in registers:
+        metrics["toc"] = _register_u16(registers, 16) / 10.0
     return metrics
 
 
@@ -138,6 +150,8 @@ def _decode_rs_nhn_amnitro(profile: DeviceProfile, registers: dict[int, bytes]) 
     metrics: dict[str, float] = {}
     if 0 in registers:
         metrics["amnitro"] = _register_u16(registers, 0) / amnitro_scale
+    if 1 in registers:
+        metrics["ph_compensation"] = _register_u16(registers, 1) / 100.0
     if 2 in registers:
         metrics["temperature"] = _register_s16(registers, 2) / 10.0
     return metrics
@@ -152,9 +166,9 @@ PROFILE_DECODERS = {
 
 PROFILE_METRICS = {
     "rs_ss": frozenset({"ss", "temperature"}),
-    "rs_cod": frozenset({"cod", "temperature", "turbidity"}),
+    "rs_cod": frozenset({"cod", "temperature", "turbidity", "toc"}),
     "rs_zd_turbidity": frozenset({"turbidity", "temperature"}),
-    "rs_nhn_amnitro": frozenset({"amnitro", "temperature"}),
+    "rs_nhn_amnitro": frozenset({"amnitro", "ph_compensation", "temperature"}),
 }
 
 

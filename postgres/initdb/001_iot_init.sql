@@ -98,6 +98,8 @@ VALUES
   ('turbidity_temperature', '浊度探头温度', '°C', true, -20::double precision, 60::double precision),
   ('cod_temperature', 'COD探头温度', '°C', true, -20::double precision, 60::double precision),
   ('cod_turbidity', 'COD附带浊度', 'NTU', true, 0::double precision, 4000::double precision),
+  ('cod_toc', 'COD附带TOC', 'mg/L', true, 0::double precision, 4000::double precision),
+  ('amnitro_ph', '氨氮PH补偿', 'pH', true, 0::double precision, 14::double precision),
   ('amnitro_temperature', '氨氮探头温度', '°C', true, -20::double precision, 60::double precision)
 ON CONFLICT (metric) DO UPDATE
 SET display_name = EXCLUDED.display_name,

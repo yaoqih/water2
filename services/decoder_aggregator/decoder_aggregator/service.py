@@ -130,7 +130,7 @@ class DecoderAggregatorService:
             profile = select_profile(profiles, query)
             metrics = profile.transform_metrics(decode_read_frames(profile, query, response))
             if not metrics:
-                LOG.info("Decoded no publishable metrics for device_id=%s topic=%s", device_id, message.topic)
+                LOG.debug("Decoded no publishable metrics for device_id=%s topic=%s", device_id, message.topic)
                 return
 
             self.aggregator.record(

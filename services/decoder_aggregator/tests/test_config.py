@@ -93,11 +93,20 @@ class ConfigLoaderTest(unittest.TestCase):
                     "sensor_range": 20000,
                     "target_device_id": "dev_out_01",
                     "publish_metrics": ["ss"],
-                    "modbus_match": {
-                        "address": 4,
-                        "function_code": 3,
-                        "start_register": 0,
-                    },
+                    "modbus_matches": [
+                        {
+                            "address": 4,
+                            "function_code": 3,
+                            "start_register": 0,
+                            "register_count": 2,
+                        },
+                        {
+                            "address": 4,
+                            "function_code": 3,
+                            "start_register": 2,
+                            "register_count": 2,
+                        },
+                    ],
                 },
                 "mux_cod": {
                     "source_device_id": "dev_mux_01",
@@ -123,6 +132,7 @@ class ConfigLoaderTest(unittest.TestCase):
 
         self.assertEqual({profile.device_id for profile in profiles.for_source_device("dev_mux_01")}, {"mux_ss", "mux_cod"})
         self.assertEqual(profiles.profiles_by_id["mux_ss"].input_device_id, "dev_mux_01")
+        self.assertEqual(len(profiles.profiles_by_id["mux_ss"].query_matches), 2)
 
     def test_rejects_shared_source_without_modbus_match(self) -> None:
         payload = {
@@ -155,6 +165,49 @@ class ConfigLoaderTest(unittest.TestCase):
             config_path.write_text(json.dumps(payload), encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "must define modbus_match"):
+                load_profiles(config_path)
+
+    def test_rejects_duplicate_modbus_matches_across_profile_arrays(self) -> None:
+        payload = {
+            "devices": {
+                "mux_ss": {
+                    "source_device_id": "dev_mux_01",
+                    "profile_type": "rs_ss",
+                    "sensor_range": 20000,
+                    "target_device_id": "dev_out_01",
+                    "publish_metrics": ["ss"],
+                    "modbus_matches": [
+                        {
+                            "address": 4,
+                            "function_code": 3,
+                            "start_register": 0,
+                            "register_count": 2,
+                        }
+                    ],
+                },
+                "mux_cod": {
+                    "source_device_id": "dev_mux_01",
+                    "profile_type": "rs_cod",
+                    "sensor_range": 500,
+                    "target_device_id": "dev_out_01",
+                    "publish_metrics": ["cod"],
+                    "modbus_matches": [
+                        {
+                            "address": 4,
+                            "function_code": 3,
+                            "start_register": 0,
+                            "register_count": 2,
+                        }
+                    ],
+                },
+            }
+        }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_path = Path(tmp_dir) / "devices.json"
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "duplicate modbus_match"):
                 load_profiles(config_path)
 
 

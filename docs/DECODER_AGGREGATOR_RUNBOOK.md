@@ -57,7 +57,8 @@ Each decoder profile entry in `services/decoder_aggregator/config/devices.json` 
 | `source_device_id` | no | Raw topic source device ID; default = `device_id` | free text |
 | `profile_type` | yes | Sensor family decoder | `rs_ss`, `rs_cod`, `rs_zd_turbidity`, `rs_nhn_amnitro` |
 | `sensor_range` | yes | Needed for scaling rules | see below |
-| `modbus_match` | no | Use Modbus query frame fields to distinguish profiles on a shared topic | object |
+| `modbus_match` | no | Single Modbus query signature for a shared raw topic | object |
+| `modbus_matches` | no | Multiple Modbus query signatures for one decoder profile | array of objects |
 | `target_device_id` | no | Logical output device ID; default = source `device_id` | free text |
 | `publish_metrics` | no | Keep only these decoded fields | array of metric names |
 | `metric_aliases` | no | Rename decoded fields before republish | object `{source_metric: output_metric}` |
@@ -76,7 +77,7 @@ Note:
 - `rs_ss` current implementation does not branch on range, but record the real range anyway for inventory consistency.
 - `rs_nhn_amnitro` only publishes `amnitro` and optional `temperature`; it does not publish `ph`.
 - If multiple source devices map to the same `target_device_id`, output metric names must remain unique after filtering/renaming.
-- If multiple profiles share one `source_device_id`, each profile must define a distinct `modbus_match`.
+- If multiple profiles share one `source_device_id`, each profile must define distinct query signatures through `modbus_match` or `modbus_matches`.
 
 ### 1.4 Upload Module Parameters
 
@@ -105,11 +106,26 @@ Current deployed mapping for `plant_cqbb_liaoning53 / pt_cqbb_liaoning53_inlet /
       "source_device_id": "dev_cqbb_liaoning53_in_03",
       "profile_type": "rs_ss",
       "sensor_range": 20000,
-      "modbus_match": {
-        "address": 4,
-        "function_code": 3,
-        "start_register": 0
-      },
+      "modbus_matches": [
+        {
+          "address": 4,
+          "function_code": 3,
+          "start_register": 0,
+          "register_count": 2
+        },
+        {
+          "address": 4,
+          "function_code": 3,
+          "start_register": 0,
+          "register_count": 4
+        },
+        {
+          "address": 4,
+          "function_code": 3,
+          "start_register": 2,
+          "register_count": 2
+        }
+      ],
       "target_device_id": "dev_cqbb_liaoning53_in_03",
       "publish_metrics": ["ss", "temperature"],
       "metric_aliases": {
@@ -119,13 +135,15 @@ Current deployed mapping for `plant_cqbb_liaoning53 / pt_cqbb_liaoning53_inlet /
     "dev_cqbb_liaoning53_in_03_zd": {
       "source_device_id": "dev_cqbb_liaoning53_in_03",
       "profile_type": "rs_zd_turbidity",
-      "sensor_range": 1000,
-      "modbus_match": {
-        "address": 1,
-        "function_code": 3,
-        "start_register": 0,
-        "register_count": 2
-      },
+      "sensor_range": 4000,
+      "modbus_matches": [
+        {
+          "address": 1,
+          "function_code": 3,
+          "start_register": 0,
+          "register_count": 2
+        }
+      ],
       "target_device_id": "dev_cqbb_liaoning53_in_03",
       "publish_metrics": ["turbidity", "temperature"],
       "metric_aliases": {
@@ -136,31 +154,68 @@ Current deployed mapping for `plant_cqbb_liaoning53 / pt_cqbb_liaoning53_inlet /
       "source_device_id": "dev_cqbb_liaoning53_in_03",
       "profile_type": "rs_cod",
       "sensor_range": 500,
-      "modbus_match": {
-        "address": 1,
-        "function_code": 3,
-        "start_register": 0,
-        "register_count": 3
-      },
+      "modbus_matches": [
+        {
+          "address": 3,
+          "function_code": 3,
+          "start_register": 0,
+          "register_count": 2
+        },
+        {
+          "address": 3,
+          "function_code": 3,
+          "start_register": 0,
+          "register_count": 3
+        },
+        {
+          "address": 3,
+          "function_code": 3,
+          "start_register": 2,
+          "register_count": 2
+        },
+        {
+          "address": 3,
+          "function_code": 3,
+          "start_register": 16,
+          "register_count": 2
+        }
+      ],
       "target_device_id": "dev_cqbb_liaoning53_in_03",
-      "publish_metrics": ["cod", "temperature", "turbidity"],
+      "publish_metrics": ["cod", "temperature", "turbidity", "toc"],
       "metric_aliases": {
         "temperature": "cod_temperature",
-        "turbidity": "cod_turbidity"
+        "turbidity": "cod_turbidity",
+        "toc": "cod_toc"
       }
     },
     "dev_cqbb_liaoning53_in_03_nhn": {
       "source_device_id": "dev_cqbb_liaoning53_in_03",
       "profile_type": "rs_nhn_amnitro",
       "sensor_range": 100,
-      "modbus_match": {
-        "address": 2,
-        "function_code": 3,
-        "start_register": 0
-      },
+      "modbus_matches": [
+        {
+          "address": 2,
+          "function_code": 3,
+          "start_register": 0,
+          "register_count": 2
+        },
+        {
+          "address": 2,
+          "function_code": 3,
+          "start_register": 0,
+          "register_count": 3
+        },
+        {
+          "address": 2,
+          "function_code": 3,
+          "start_register": 1,
+          "register_count": 2
+        }
+      ],
       "target_device_id": "dev_cqbb_liaoning53_in_03",
-      "publish_metrics": ["amnitro", "temperature"],
+      "publish_metrics": ["amnitro", "ph_compensation", "temperature"],
       "metric_aliases": {
+        "ph_compensation": "amnitro_ph",
         "temperature": "amnitro_temperature"
       }
     }
@@ -173,9 +228,11 @@ This produces the flat output payload shape:
 ```json
 {
   "amnitro": 0.0,
+  "amnitro_ph": 0.0,
   "amnitro_temperature": 0.0,
   "cod": 0.0,
   "cod_temperature": 0.0,
+  "cod_toc": 0.0,
   "cod_turbidity": 0.0,
   "ss": 0.0,
   "ss_temperature": 0.0,
@@ -188,7 +245,9 @@ Notes:
 
 - 主指标仍然是 `ss/turbidity/cod/amnitro`。
 - 各探头附带温度会用带前缀的新字段上传，避免多个 `temperature` 冲突。
-- 氨氮手册里的 pH 补偿寄存器仍不作为测量值上传。
+- 氨氮手册里的 `0x0001` 会作为 `amnitro_ph` 上传，它表示氨氮探头使用的 pH 补偿值，不是独立 pH 探头的测量值。
+- COD 手册里的 `0x0002` 和 `0x0010` 分别作为 `cod_turbidity` 和 `cod_toc` 上传。
+- 该站点实测地址映射为 `01=浊度`、`02=氨氮`、`03=COD`、`04=悬浮物`；整理版 Word 文档与现场旧配置不一致时，以 PDF 手册和 live 报文为准。
 - 某个附带字段是否真正出现，取决于上传模块当前上报的原始帧是否包含对应寄存器；解码层不会补造不存在的数据。
 - 当前这套站点使用单 raw topic：`water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry`。
 - 当前生产模块实测发来的是原始二进制帧，不是 ASCII hex 文本；decoder 已兼容这两种格式。
@@ -302,10 +361,10 @@ Prepare one row per decoder rule:
 
 | plant_id | point_id | point_type | source_device_id | profile_id | profile_type | modbus_match | sensor_range | upload raw topic |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `plant_cqbb_liaoning53` | `pt_cqbb_liaoning53_inlet` | `inlet` | `dev_cqbb_liaoning53_in_03` | `dev_cqbb_liaoning53_in_03_ss` | `rs_ss` | `address=4,function=3,start=0` | `20000` | `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry` |
-| `plant_cqbb_liaoning53` | `pt_cqbb_liaoning53_inlet` | `inlet` | `dev_cqbb_liaoning53_in_03` | `dev_cqbb_liaoning53_in_03_zd` | `rs_zd_turbidity` | `address=1,function=3,start=0,count=2` | `1000` | `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry` |
-| `plant_cqbb_liaoning53` | `pt_cqbb_liaoning53_inlet` | `inlet` | `dev_cqbb_liaoning53_in_03` | `dev_cqbb_liaoning53_in_03_cod` | `rs_cod` | `address=1,function=3,start=0,count=3` | `500` | `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry` |
-| `plant_cqbb_liaoning53` | `pt_cqbb_liaoning53_inlet` | `inlet` | `dev_cqbb_liaoning53_in_03` | `dev_cqbb_liaoning53_in_03_nhn` | `rs_nhn_amnitro` | `address=2,function=3,start=0` | `100` | `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry` |
+| `plant_cqbb_liaoning53` | `pt_cqbb_liaoning53_inlet` | `inlet` | `dev_cqbb_liaoning53_in_03` | `dev_cqbb_liaoning53_in_03_ss` | `rs_ss` | `[(4,3,0,2),(4,3,0,4),(4,3,2,2)]` | `20000` | `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry` |
+| `plant_cqbb_liaoning53` | `pt_cqbb_liaoning53_inlet` | `inlet` | `dev_cqbb_liaoning53_in_03` | `dev_cqbb_liaoning53_in_03_zd` | `rs_zd_turbidity` | `[(1,3,0,2)]` | `4000` | `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry` |
+| `plant_cqbb_liaoning53` | `pt_cqbb_liaoning53_inlet` | `inlet` | `dev_cqbb_liaoning53_in_03` | `dev_cqbb_liaoning53_in_03_cod` | `rs_cod` | `[(3,3,0,2),(3,3,0,3),(3,3,2,2),(3,3,16,2)]` | `500` | `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry` |
+| `plant_cqbb_liaoning53` | `pt_cqbb_liaoning53_inlet` | `inlet` | `dev_cqbb_liaoning53_in_03` | `dev_cqbb_liaoning53_in_03_nhn` | `rs_nhn_amnitro` | `[(2,3,0,2),(2,3,0,3),(2,3,1,2)]` | `100` | `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_03/telemetry` |
 
 ## 5. Test-Stack Bring-Up
 

@@ -36,8 +36,8 @@ class DecodeProfilesTest(unittest.TestCase):
             profile_type="rs_cod",
             sensor_range=500,
             target_device_id="dev_merged_01",
-            publish_metrics=("cod", "temperature"),
-            metric_aliases={"temperature": "cod_temperature"},
+            publish_metrics=("cod", "temperature", "toc"),
+            metric_aliases={"temperature": "cod_temperature", "toc": "cod_toc"},
         )
 
         metrics = profile.transform_metrics(
@@ -45,6 +45,7 @@ class DecodeProfilesTest(unittest.TestCase):
                 "cod": 12.3,
                 "temperature": 20.6,
                 "turbidity": 1.4,
+                "toc": 7.8,
             }
         )
 
@@ -53,6 +54,7 @@ class DecodeProfilesTest(unittest.TestCase):
             {
                 "cod": 12.3,
                 "cod_temperature": 20.6,
+                "cod_toc": 7.8,
             },
         )
         self.assertEqual(profile.output_device_id, "dev_merged_01")
@@ -103,7 +105,22 @@ class DecodeProfilesTest(unittest.TestCase):
         self.assertAlmostEqual(metrics["temperature"], 20.6, places=6)
         self.assertAlmostEqual(metrics["turbidity"], 1.4, places=6)
 
-    def test_decode_ammonia_payload_ignores_ph_compensation(self) -> None:
+    def test_decode_cod_toc_payload(self) -> None:
+        profile = DeviceProfile(
+            device_id="dev_cod_01",
+            profile_type="rs_cod",
+            sensor_range=500,
+        )
+
+        metrics = decode_hex_payload(
+            profile,
+            "030300100002c42c030304011403d898a1",
+        )
+
+        self.assertAlmostEqual(metrics["toc"], 27.6, places=6)
+        self.assertEqual(set(metrics.keys()), {"toc"})
+
+    def test_decode_ammonia_payload_includes_ph_compensation(self) -> None:
         profile = DeviceProfile(
             device_id="dev_nhn_01",
             profile_type="rs_nhn_amnitro",
@@ -116,7 +133,8 @@ class DecodeProfilesTest(unittest.TestCase):
         )
 
         self.assertAlmostEqual(metrics["amnitro"], 13.32, places=6)
-        self.assertEqual(set(metrics.keys()), {"amnitro"})
+        self.assertAlmostEqual(metrics["ph_compensation"], 7.5, places=6)
+        self.assertEqual(set(metrics.keys()), {"amnitro", "ph_compensation"})
 
     def test_selects_and_decodes_live_single_topic_frames(self) -> None:
         profiles = [
@@ -134,7 +152,7 @@ class DecodeProfilesTest(unittest.TestCase):
                 profile_type="rs_cod",
                 sensor_range=500,
                 target_device_id="dev_out_live",
-                modbus_match=ModbusReadMatch(address=1, function_code=3, start_register=0, register_count=2),
+                modbus_match=ModbusReadMatch(address=3, function_code=3, start_register=0, register_count=2),
             ),
             DeviceProfile(
                 device_id="mux_nhn",
@@ -150,7 +168,7 @@ class DecodeProfilesTest(unittest.TestCase):
                 profile_type="rs_zd_turbidity",
                 sensor_range=1000,
                 target_device_id="dev_out_live",
-                modbus_match=ModbusReadMatch(address=3, function_code=3, start_register=0, register_count=2),
+                modbus_match=ModbusReadMatch(address=1, function_code=3, start_register=0, register_count=2),
             ),
         ]
 
@@ -161,17 +179,17 @@ class DecodeProfilesTest(unittest.TestCase):
                 {"ss": 319.78021240234375},
             ),
             (
-                "010300000002c40b010304000000b13a47",
+                "030300000002c5e903030402b100b4881b",
                 "mux_cod",
-                {"cod": 0.0, "temperature": 17.7},
+                {"cod": 68.9, "temperature": 18.0},
             ),
             (
                 "020300000002c438020304032802eec853",
                 "mux_nhn",
-                {"amnitro": 8.08},
+                {"amnitro": 8.08, "ph_compensation": 7.5},
             ),
             (
-                "030300000002c5e903030406f100b208fd",
+                "010300000002c40b01030406f100b22b3d",
                 "mux_zd",
                 {"turbidity": 177.7, "temperature": 17.8},
             ),
@@ -189,7 +207,7 @@ class DecodeProfilesTest(unittest.TestCase):
             for metric, expected_value in expected_metrics.items():
                 self.assertAlmostEqual(decoded[metric], expected_value, places=6)
 
-    def test_live_device_profiles_accept_both_current_and_expanded_register_ranges(self) -> None:
+    def test_live_device_profiles_accept_current_split_register_ranges(self) -> None:
         from decoder_aggregator.config import load_profiles
 
         registry = load_profiles("/root/iot-stack/services/decoder_aggregator/config/devices.json")
@@ -197,34 +215,78 @@ class DecodeProfilesTest(unittest.TestCase):
 
         cases = [
             (
-                "040300000002c45e040304428c4ff44f17",
+                "040300000002c45e0403044350325a2ffd",
                 "dev_cqbb_liaoning53_in_03_ss",
-                {"ss": 70.15615844726562},
+                {"ss": 208.19668579101562},
             ),
+            (
+                "040300020002659e040304418e40a4eb5f",
+                "dev_cqbb_liaoning53_in_03_ss",
+                {"ss_temperature": 17.78156280517578},
+            ),
+            (
+                "030300000002c5e903030402b100b4881b",
+                "dev_cqbb_liaoning53_in_03_cod",
+                {"cod": 68.9, "cod_temperature": 18.0},
+            ),
+            (
+                "010300000002c40b010304030c00b37bc1",
+                "dev_cqbb_liaoning53_in_03_zd",
+                {"turbidity": 780.0, "turbidity_temperature": 17.9},
+            ),
+            (
+                "020300000002c438020304034602eea98e",
+                "dev_cqbb_liaoning53_in_03_nhn",
+                {"amnitro": 8.38, "amnitro_ph": 7.5},
+            ),
+            (
+                "02030001000295f802030402ee00b4a8c9",
+                "dev_cqbb_liaoning53_in_03_nhn",
+                {"amnitro_ph": 7.5, "amnitro_temperature": 18.0},
+            ),
+            (
+                "030300020002642903030407d0000b98b9",
+                "dev_cqbb_liaoning53_in_03_cod",
+                {"cod_turbidity": 200.0},
+            ),
+            (
+                "030300100002c42c030304011403d898a1",
+                "dev_cqbb_liaoning53_in_03_cod",
+                {"cod_toc": 27.6},
+            ),
+        ]
+
+        for payload_hex, expected_profile_id, expected_metrics in cases:
+            query, _ = parse_read_frames(payload_hex)
+            profile = select_profile(profiles, query)
+
+            self.assertEqual(profile.device_id, expected_profile_id)
+            decoded = profile.transform_metrics(decode_hex_payload(profile, payload_hex))
+
+            for metric, expected_value in expected_metrics.items():
+                self.assertAlmostEqual(decoded[metric], expected_value, places=6)
+
+    def test_live_device_profiles_accept_legacy_expanded_register_ranges(self) -> None:
+        from decoder_aggregator.config import load_profiles
+
+        registry = load_profiles("/root/iot-stack/services/decoder_aggregator/config/devices.json")
+        profiles = registry.for_source_device("dev_cqbb_liaoning53_in_03")
+
+        cases = [
             (
                 "040300000004445c040308420eafb541a2f51d4930",
                 "dev_cqbb_liaoning53_in_03_ss",
                 {"ss": 35.67158889770508, "ss_temperature": 20.36968421936035},
             ),
             (
-                "010300000002c40b01030400be009fda7f",
-                "dev_cqbb_liaoning53_in_03_cod",
-                {"cod": 19.0, "cod_temperature": 15.9},
-            ),
-            (
-                "01030000000305cb01030600be009f00077882",
+                "030300000003042903030600be009f000761e2",
                 "dev_cqbb_liaoning53_in_03_cod",
                 {"cod": 19.0, "cod_temperature": 15.9, "cod_turbidity": 0.7},
             ),
             (
-                "020300000002c438020304022702eef9ac",
-                "dev_cqbb_liaoning53_in_03_nhn",
-                {"amnitro": 5.51},
-            ),
-            (
                 "02030000000305f8020306022702ee00b2e198",
                 "dev_cqbb_liaoning53_in_03_nhn",
-                {"amnitro": 5.51, "amnitro_temperature": 17.8},
+                {"amnitro": 5.51, "amnitro_ph": 7.5, "amnitro_temperature": 17.8},
             ),
         ]
 

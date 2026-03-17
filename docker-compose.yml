@@ -81,6 +81,33 @@ services:
     networks:
       - iot_net
 
+  decoder-aggregator:
+    build:
+      context: .
+      dockerfile: services/decoder_aggregator/Dockerfile
+    container_name: ${STACK_NAME:-iot}-decoder-aggregator
+    restart: unless-stopped
+    depends_on:
+      - emqx
+    environment:
+      DECODER_MQTT_HOST: ${DECODER_MQTT_HOST:-emqx}
+      DECODER_MQTT_PORT: ${DECODER_MQTT_PORT:-1883}
+      DECODER_MQTT_USERNAME: ${EMQX_DECODER_USERNAME:-decoder_user}
+      DECODER_MQTT_PASSWORD: ${EMQX_DECODER_PASSWORD:-change_me_decoder}
+      DECODER_RAW_TOPIC: ${DECODER_RAW_TOPIC:-water/raw/v1/+/+/+/telemetry}
+      DECODER_CONFIG_PATH: /app/config/devices.json
+      DECODER_SUBSCRIBER_CLIENT_ID: ${DECODER_SUBSCRIBER_CLIENT_ID:-decoder_aggregator_sub}
+      DECODER_SUBSCRIBE_QOS: ${DECODER_SUBSCRIBE_QOS:-1}
+      DECODER_PUBLISH_QOS: ${DECODER_PUBLISH_QOS:-1}
+      DECODER_FLUSH_DELAY_SEC: ${DECODER_FLUSH_DELAY_SEC:-5}
+      DECODER_KEEPALIVE_SEC: ${DECODER_KEEPALIVE_SEC:-30}
+      DECODER_FLUSH_POLL_SEC: ${DECODER_FLUSH_POLL_SEC:-1.0}
+      DECODER_LOG_LEVEL: ${DECODER_LOG_LEVEL:-INFO}
+    volumes:
+      - ./services/decoder_aggregator/config/devices.json:/app/config/devices.json:ro
+    networks:
+      - iot_net
+
   grafana:
     image: grafana/grafana:latest
     container_name: ${STACK_NAME:-iot}-grafana

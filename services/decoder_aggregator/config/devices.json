@@ -1,0 +1,65 @@
+{
+  "devices": {
+    "dev_cqbb_liaoning53_in_03_ss": {
+      "source_device_id": "dev_cqbb_liaoning53_in_03",
+      "profile_type": "rs_ss",
+      "sensor_range": 20000,
+      "modbus_match": {
+        "address": 4,
+        "function_code": 3,
+        "start_register": 0
+      },
+      "target_device_id": "dev_cqbb_liaoning53_in_03",
+      "publish_metrics": ["ss", "temperature"],
+      "metric_aliases": {
+        "temperature": "ss_temperature"
+      }
+    },
+    "dev_cqbb_liaoning53_in_03_zd": {
+      "source_device_id": "dev_cqbb_liaoning53_in_03",
+      "profile_type": "rs_zd_turbidity",
+      "sensor_range": 1000,
+      "modbus_match": {
+        "address": 3,
+        "function_code": 3,
+        "start_register": 0
+      },
+      "target_device_id": "dev_cqbb_liaoning53_in_03",
+      "publish_metrics": ["turbidity", "temperature"],
+      "metric_aliases": {
+        "temperature": "turbidity_temperature"
+      }
+    },
+    "dev_cqbb_liaoning53_in_03_cod": {
+      "source_device_id": "dev_cqbb_liaoning53_in_03",
+      "profile_type": "rs_cod",
+      "sensor_range": 500,
+      "modbus_match": {
+        "address": 1,
+        "function_code": 3,
+        "start_register": 0
+      },
+      "target_device_id": "dev_cqbb_liaoning53_in_03",
+      "publish_metrics": ["cod", "temperature", "turbidity"],
+      "metric_aliases": {
+        "temperature": "cod_temperature",
+        "turbidity": "cod_turbidity"
+      }
+    },
+    "dev_cqbb_liaoning53_in_03_nhn": {
+      "source_device_id": "dev_cqbb_liaoning53_in_03",
+      "profile_type": "rs_nhn_amnitro",
+      "sensor_range": 100,
+      "modbus_match": {
+        "address": 2,
+        "function_code": 3,
+        "start_register": 0
+      },
+      "target_device_id": "dev_cqbb_liaoning53_in_03",
+      "publish_metrics": ["amnitro", "temperature"],
+      "metric_aliases": {
+        "temperature": "amnitro_temperature"
+      }
+    }
+  }
+}

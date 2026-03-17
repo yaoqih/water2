@@ -757,8 +757,26 @@ emqx_login() {
   EMQX_AUTH=(-H "Authorization: Bearer ${token}" -H 'Content-Type: application/json')
 }
 
+upsert_emqx_password_user() {
+  local auth_id="$1"
+  local user_id="$2"
+  local password="$3"
+  local output_file="$4"
+
+  local create_status
+  create_status="$(curl -sS -o "${output_file}" -w '%{http_code}' "${EMQX_AUTH[@]}" -X POST "${EMQX_API_BASE}/authentication/${auth_id}/users" -d "{\"user_id\":\"${user_id}\",\"password\":\"${password}\"}")"
+  if [ "${create_status}" = "409" ]; then
+    curl -fsS "${EMQX_AUTH[@]}" -X PUT "${EMQX_API_BASE}/authentication/${auth_id}/users/${user_id}" -d "{\"password\":\"${password}\"}" >/dev/null
+  elif [ "${create_status}" != "201" ] && [ "${create_status}" != "200" ]; then
+    cat "${output_file}" >&2
+    die "Create MQTT user failed: HTTP ${create_status}"
+  fi
+}
+
 configure_emqx_security() {
   local auth_id="password_based:built_in_database"
+  local decoder_user="${EMQX_DECODER_USERNAME:-decoder_user}"
+  local decoder_password="${EMQX_DECODER_PASSWORD:-change_me_decoder}"
 
   if ! curl -fsS "${EMQX_AUTH[@]}" "${EMQX_API_BASE}/authentication/${auth_id}" >/dev/null 2>&1; then
     curl -fsS "${EMQX_AUTH[@]}" -X POST "${EMQX_API_BASE}/authentication" \
@@ -766,14 +784,9 @@ configure_emqx_security() {
   fi
 
   local user_out="${TMP_DIR}/emqx_mqtt_user.out"
-  local create_status
-  create_status="$(curl -sS -o "${user_out}" -w '%{http_code}' "${EMQX_AUTH[@]}" -X POST "${EMQX_API_BASE}/authentication/${auth_id}/users" -d "{\"user_id\":\"${EMQX_MQTT_USERNAME}\",\"password\":\"${EMQX_MQTT_PASSWORD}\"}")"
-  if [ "${create_status}" = "409" ]; then
-    curl -fsS "${EMQX_AUTH[@]}" -X PUT "${EMQX_API_BASE}/authentication/${auth_id}/users/${EMQX_MQTT_USERNAME}" -d "{\"password\":\"${EMQX_MQTT_PASSWORD}\"}" >/dev/null
-  elif [ "${create_status}" != "201" ] && [ "${create_status}" != "200" ]; then
-    cat "${user_out}" >&2
-    die "Create MQTT user failed: HTTP ${create_status}"
-  fi
+  local decoder_out="${TMP_DIR}/emqx_decoder_user.out"
+  upsert_emqx_password_user "${auth_id}" "${EMQX_MQTT_USERNAME}" "${EMQX_MQTT_PASSWORD}" "${user_out}"
+  upsert_emqx_password_user "${auth_id}" "${decoder_user}" "${decoder_password}" "${decoder_out}"
 
   local authz_settings
   authz_settings="$(curl -fsS "${EMQX_AUTH[@]}" "${EMQX_API_BASE}/authorization/settings")"
@@ -804,7 +817,10 @@ configure_emqx_security() {
   fi
 
   curl -fsS "${EMQX_AUTH[@]}" -X PUT "${EMQX_API_BASE}/authorization/sources/built_in_database/rules/users/${EMQX_MQTT_USERNAME}" \
-    -d '{"username":"'"${EMQX_MQTT_USERNAME}"'","rules":[{"permission":"allow","action":"publish","topic":"water/v1/+/+/+/telemetry"},{"permission":"allow","action":"subscribe","topic":"water/v1/+/+/+/cmd/+"},{"permission":"deny","action":"all","topic":"#"}]}' >/dev/null
+    -d '{"username":"'"${EMQX_MQTT_USERNAME}"'","rules":[{"permission":"allow","action":"publish","topic":"water/v1/+/+/+/telemetry"},{"permission":"allow","action":"publish","topic":"water/raw/v1/+/+/+/telemetry"},{"permission":"allow","action":"publish","topic":"test/water/v1/+/+/+/telemetry"},{"permission":"allow","action":"subscribe","topic":"water/v1/+/+/+/cmd/+"},{"permission":"deny","action":"all","topic":"#"}]}' >/dev/null
+
+  curl -fsS "${EMQX_AUTH[@]}" -X PUT "${EMQX_API_BASE}/authorization/sources/built_in_database/rules/users/${decoder_user}" \
+    -d '{"username":"'"${decoder_user}"'","rules":[{"permission":"allow","action":"subscribe","topic":"water/raw/v1/+/+/+/telemetry"},{"permission":"allow","action":"publish","topic":"water/v1/+/+/+/telemetry"},{"permission":"deny","action":"all","topic":"#"}]}' >/dev/null
 
   echo "EMQX security ready (${STACK_ENV})"
 }
@@ -896,6 +912,32 @@ EOF_RULE
   echo "EMQX direct ingest ready (${STACK_ENV})"
 }
 
+configure_emqx_test_console_rule() {
+  local rule_id="rule_test_water_v1_telemetry_console"
+  local rule_json="${TMP_DIR}/test-console-rule.json"
+
+  cat > "${rule_json}" <<EOF_RULE
+{
+  "id": "${rule_id}",
+  "name": "test_water_v1_telemetry_console",
+  "enable": true,
+  "sql": "SELECT * FROM \"test/water/v1/+/+/+/telemetry\"",
+  "actions": [
+    {
+      "function": "console"
+    }
+  ],
+  "description": "Log test/water/v1 telemetry to EMQX console without DB ingest"
+}
+EOF_RULE
+
+  curl -sS "${EMQX_AUTH[@]}" -X DELETE "${EMQX_API_BASE}/rules/${rule_id}" >/dev/null || true
+
+  post_or_allow_exists "rules" "${rule_json}" "${TMP_DIR}/test-console-rule.out"
+
+  echo "EMQX test console rule ready (${STACK_ENV})"
+}
+
 run_configure() {
   parse_env_only_args "$@"
   require_cmd curl
@@ -917,6 +959,7 @@ run_configure() {
   emqx_login
   configure_emqx_security
   configure_emqx_direct_ingest
+  configure_emqx_test_console_rule
 
   echo "Runtime configuration completed for ${STACK_ENV}"
 }

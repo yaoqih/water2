@@ -6,7 +6,7 @@
 
 目标：提供最小、稳定、可审计的数据链路与管理链路。
 
-- 数据面：`Device -> EMQX -> TimescaleDB -> Grafana`
+- 数据面：`Device/Gateway -> EMQX -> TimescaleDB -> Grafana`
 - 控制面：`Grafana/PostgREST -> admin_api -> PostgreSQL`
 
 边界：
@@ -20,19 +20,29 @@
 ### 2.1 EMQX
 
 - MQTT 接入、鉴权、ACL
-- Rule Engine 调用 `ingest_telemetry(...)`
+- 标准遥测 topic 的 Rule Engine 调用 `ingest_telemetry(...)`
+- 承载原始 `raw` topic 与标准 `v1` topic
 
-### 2.2 TimescaleDB
+### 2.2 Decoder Aggregator
+
+- 订阅 `water/raw/v1/.../telemetry`
+- 按原始源设备 profile 解码原始十六进制 Modbus 载荷
+- 支持同一 raw topic 下按 Modbus 查询帧特征区分多个传感器
+- 对解码结果做 1 分钟均值聚合
+- 支持将多路原始源设备映射并合并到 1 个逻辑 `target_device_id`
+- 以逻辑 `target_device_id` 作为发布端 MQTT Client ID，回发标准 `water/v1/.../telemetry`
+
+### 2.3 TimescaleDB
 
 - 存储元数据与时序数据
 - 承载 `admin_api`（视图/RPC/审计）
 
-### 2.3 Grafana
+### 2.4 Grafana
 
 - 可观测看板
 - 7 个页面（6 个管理页 + 1 个监测页）
 
-### 2.4 PostgREST
+### 2.5 PostgREST
 
 - 暴露 `admin_api` 的 REST/RPC
 - 通过 `x-admin-token` 做最小鉴权
@@ -65,11 +75,22 @@
 
 ## 5. 核心数据流
 
+标准路径：
+
 1. 设备发布 `water/v1/.../telemetry`
-2. EMQX Rule 命中主题
+2. EMQX Rule 命中标准主题
 3. EMQX Action 执行 `SELECT ingest_telemetry(...)`
 4. DB 完成校验、写原始、拆分指标、更新时间
 5. Grafana 查询 `metric_sample`
+
+原始解码路径：
+
+1. 上传模块发布 `water/raw/v1/.../telemetry`
+2. `decoder-aggregator` 订阅原始主题
+3. 按源设备 profile 解码；同一 topic 下可继续按 Modbus 查询帧选中具体 profile
+4. 多路源设备可按 `target_device_id` 合并到同一分钟桶
+5. `decoder-aggregator` 以逻辑 `target_device_id` 为发布端 Client ID，回发 `water/v1/.../telemetry`
+6. 后续继续走标准路径入库
 
 ## 6. 自动化脚本分工
 

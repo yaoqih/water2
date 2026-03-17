@@ -189,6 +189,17 @@ mosquitto_pub -h 127.0.0.1 -p "${EMQX_MQTT_PORT}" \
   -t water/v1/plant_test/pt_test_inlet/dev_test_01/telemetry \
   -m '{"cod":38.8,"ph":7.4}' -q 1
 
+# 可选：只测试 EMQX 收包，不落库
+mosquitto_pub -h 127.0.0.1 -p "${EMQX_MQTT_PORT}" \
+  --cafile /etc/ssl/certs/ca-certificates.crt \
+  --insecure \
+  -u "${EMQX_MQTT_USERNAME}" -P "${EMQX_MQTT_PASSWORD}" \
+  -i dev_test_01 \
+  -t test/water/v1/plant_test/pt_test_inlet/dev_test_01/telemetry \
+  -m '{"cod":38.8,"ph":7.4}' -q 1
+
+docker compose --env-file env/test.env -p iot-test logs --since=30s emqx
+
 # 可选：检查是否落库成功
 docker compose --env-file env/test.env -p iot-test exec -T timescaledb \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc \

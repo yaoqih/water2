@@ -74,6 +74,12 @@
 7. 按设备 `report_interval_sec + align_mode(floor/round)` 对齐 `metric_sample.ingest_ts` 后拆分写入
 8. 更新 `device.last_seen_at`
 
+说明：
+
+- `ingest_telemetry(...)` 只消费标准 `water/v1/.../telemetry` 扁平 JSON。
+- 原始十六进制解码链路由 `decoder-aggregator` 在 EMQX 外完成解析与 1 分钟均值聚合，再回发标准 topic。
+- 因此原始解码链路下，`raw_message.payload` 保存的是分钟均值 JSON，而不是上传模块的原始十六进制串。
+
 ## 4. 控制面 schema：`admin_api`
 
 ### 4.1 审计

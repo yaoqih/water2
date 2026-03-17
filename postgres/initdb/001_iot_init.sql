@@ -66,6 +66,20 @@ FROM (
 ) AS s(metric, display_name, unit, visible, alarm_low, alarm_high)
 WHERE NOT EXISTS (SELECT 1 FROM metric_dict);
 
+INSERT INTO metric_dict(metric, display_name, unit, visible, alarm_low, alarm_high)
+VALUES
+  ('ss_temperature', '悬浮物探头温度', '°C', true, -20::double precision, 60::double precision),
+  ('turbidity_temperature', '浊度探头温度', '°C', true, -20::double precision, 60::double precision),
+  ('cod_temperature', 'COD探头温度', '°C', true, -20::double precision, 60::double precision),
+  ('cod_turbidity', 'COD附带浊度', 'NTU', true, 0::double precision, 4000::double precision),
+  ('amnitro_temperature', '氨氮探头温度', '°C', true, -20::double precision, 60::double precision)
+ON CONFLICT (metric) DO UPDATE
+SET display_name = EXCLUDED.display_name,
+    unit = EXCLUDED.unit,
+    visible = EXCLUDED.visible,
+    alarm_low = EXCLUDED.alarm_low,
+    alarm_high = EXCLUDED.alarm_high;
+
 CREATE TABLE IF NOT EXISTS raw_message (
   raw_id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   ingest_ts     TIMESTAMPTZ NOT NULL DEFAULT now(),

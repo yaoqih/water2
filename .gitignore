@@ -24,3 +24,5 @@ Thumbs.db
 # ===== Python cache (if local tooling is added) =====
 __pycache__/
 .pytest_cache/
+docs/client-briefing/
+docs/new_sersor/

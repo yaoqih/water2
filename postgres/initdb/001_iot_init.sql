@@ -111,11 +111,14 @@ SET display_name = EXCLUDED.display_name,
 CREATE TABLE IF NOT EXISTS raw_message (
   raw_id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   ingest_ts     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  source_ts     TIMESTAMPTZ,
   topic         TEXT NOT NULL,
   msg_id        TEXT NOT NULL,
   payload       JSONB NOT NULL
 );
 
+ALTER TABLE raw_message
+  ADD COLUMN IF NOT EXISTS source_ts TIMESTAMPTZ;
 
 
 CREATE INDEX IF NOT EXISTS raw_message_ts_idx
@@ -126,6 +129,10 @@ CREATE INDEX IF NOT EXISTS raw_message_topic_ts_idx
 
 CREATE INDEX IF NOT EXISTS raw_message_topic_msg_idx
   ON raw_message (topic, msg_id, ingest_ts DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS raw_message_topic_source_ts_uniq
+  ON raw_message (topic, source_ts)
+  WHERE source_ts IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS metric_sample (
   ingest_ts                TIMESTAMPTZ NOT NULL,
@@ -243,6 +250,8 @@ DECLARE
   v_msg_id TEXT;
   v_raw_id BIGINT;
   v_ingest_ts TIMESTAMPTZ;
+  v_source_ts TIMESTAMPTZ;
+  v_metric_payload JSONB;
   v_report_interval_sec INT;
   v_align_mode TEXT;
   v_aligned_ts TIMESTAMPTZ;
@@ -274,7 +283,19 @@ BEGIN
     RAISE EXCEPTION 'legacy payload is not supported: metrics/msg_id/seq are forbidden';
   END IF;
 
-  IF (SELECT count(*) FROM jsonb_object_keys(p_payload)) = 0 THEN
+  IF p_payload ? '_observed_at' THEN
+    IF (p_payload ->> '_observed_at') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$' THEN
+      RAISE EXCEPTION '_observed_at must be an RFC 3339 timestamp with UTC offset';
+    END IF;
+    BEGIN
+      v_source_ts := (p_payload ->> '_observed_at')::TIMESTAMPTZ;
+    EXCEPTION WHEN others THEN
+      RAISE EXCEPTION '_observed_at must be an RFC 3339 timestamp';
+    END;
+  END IF;
+
+  v_metric_payload := p_payload - '_observed_at';
+  IF (SELECT count(*) FROM jsonb_object_keys(v_metric_payload)) = 0 THEN
     RAISE EXCEPTION 'payload must contain at least one metric';
   END IF;
 
@@ -294,13 +315,19 @@ BEGIN
   v_msg_id := md5(clock_timestamp()::text || random()::text || p_topic || p_payload::text);
 
   INSERT INTO raw_message(
-    topic, msg_id, payload
+    topic, msg_id, payload, source_ts
   ) VALUES (
-    p_topic, v_msg_id, p_payload
+    p_topic, v_msg_id, p_payload, v_source_ts
   )
+  ON CONFLICT (topic, source_ts) WHERE source_ts IS NOT NULL DO UPDATE
+  SET msg_id = EXCLUDED.msg_id,
+      payload = EXCLUDED.payload
   RETURNING raw_id, ingest_ts INTO v_raw_id, v_ingest_ts;
 
-  -- Keep raw_message.ingest_ts untouched, and align only metric_sample.ingest_ts.
+  DELETE FROM metric_sample WHERE raw_id = v_raw_id;
+
+  -- Preserve receipt time on raw_message, while source time drives the time-series sample.
+  v_ingest_ts := COALESCE(v_source_ts, v_ingest_ts);
   v_report_interval_sec := GREATEST(1, COALESCE(v_report_interval_sec, 60));
   v_align_mode := COALESCE(v_align_mode, 'floor');
   v_epoch := extract(epoch FROM v_ingest_ts);
@@ -316,7 +343,7 @@ BEGIN
 
   FOR metric_kv IN
     SELECT key, value
-    FROM jsonb_each(p_payload)
+    FROM jsonb_each(v_metric_payload)
   LOOP
     BEGIN
       v_value := (metric_kv.value #>> '{}')::DOUBLE PRECISION;
@@ -335,7 +362,7 @@ BEGIN
   END LOOP;
 
   UPDATE device
-  SET last_seen_at = v_ingest_ts
+  SET last_seen_at = GREATEST(COALESCE(last_seen_at, v_ingest_ts), v_ingest_ts)
   WHERE device_id = v_device_id;
 END;
 $$;

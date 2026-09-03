@@ -146,7 +146,8 @@ reconcile_db_schema() {
   local sql_file
   for sql_file in \
     "${STACK_DIR}/postgres/initdb/001_iot_init.sql" \
-    "${STACK_DIR}/postgres/initdb/002_admin_api.sql"; do
+    "${STACK_DIR}/postgres/initdb/002_admin_api.sql" \
+    "${STACK_DIR}/postgres/initdb/003_zouma_rehousing_water_api.sql"; do
     [ -f "${sql_file}" ] || die "Missing SQL file: ${sql_file}"
     compose_stack exec -T timescaledb psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" < "${sql_file}"
   done
@@ -205,6 +206,9 @@ GRANT CONNECT ON DATABASE ${POSTGRES_DB} TO ${EMQX_TS_DB_USER};
 GRANT USAGE ON SCHEMA public TO ${EMQX_TS_DB_USER};
 GRANT SELECT ON TABLE public.device, public.point, public.metric_dict, public.raw_message TO ${EMQX_TS_DB_USER};
 GRANT INSERT ON TABLE public.raw_message, public.metric_sample TO ${EMQX_TS_DB_USER};
+GRANT UPDATE (msg_id, payload) ON TABLE public.raw_message TO ${EMQX_TS_DB_USER};
+GRANT DELETE ON TABLE public.metric_sample TO ${EMQX_TS_DB_USER};
+GRANT SELECT (raw_id) ON TABLE public.metric_sample TO ${EMQX_TS_DB_USER};
 GRANT UPDATE (last_seen_at) ON TABLE public.device TO ${EMQX_TS_DB_USER};
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${EMQX_TS_DB_USER};
 GRANT EXECUTE ON FUNCTION public.ingest_telemetry(TEXT, JSONB, TEXT, INT) TO ${EMQX_TS_DB_USER};

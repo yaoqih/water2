@@ -74,10 +74,18 @@
 
 仅允许扁平 JSON（键值对）。
 
+对于 HTTP 拉取源，允许一个保留字段 `_observed_at`，值必须为带 UTC 偏移的 RFC 3339 时间戳。该字段不作为指标入库，而是作为样本时间；其他键仍必须为数值。
+
 示例：
 
 ```json
 {"cod": 36.5, "ph": 7.21, "turbidity": 12.8}
+```
+
+HTTP 拉取示例：
+
+```json
+{"_observed_at":"2026-08-17T17:17:30+08:00","watert":29.9,"turbidity":456,"ss":2231,"cod":80.3,"amnitro":39.9}
 ```
 
 ### 4.2 标准 topic 禁止格式
@@ -89,6 +97,7 @@
 - 字段 `msg_id`
 - 字段 `seq`
 - value 不可转数值
+- `_observed_at` 不是带 UTC 偏移的 RFC 3339 时间戳
 
 ### 4.3 原始 topic Payload
 
@@ -130,8 +139,9 @@
 
 写入行为：
 
+- 可选 `_observed_at` 解析为源采集时间，并从指标集合中剥离
 - 服务端生成 `msg_id`
-- 原样写入 `raw_message`
+- 原样写入 `raw_message`；同一 `topic + source_ts` 会更新已有记录
 - 每个指标拆行为 `metric_sample`
 
 说明：

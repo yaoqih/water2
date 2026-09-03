@@ -7,6 +7,7 @@
 目标：提供最小、稳定、可审计的数据链路与管理链路。
 
 - 数据面：`Device/Gateway -> EMQX -> TimescaleDB -> Grafana`
+- HTTP 数据面：`Public Water API -> water-api-collector -> EMQX -> TimescaleDB -> Grafana`
 - 控制面：`Grafana/PostgREST -> admin_api -> PostgreSQL`
 
 边界：
@@ -37,12 +38,18 @@
 - 存储元数据与时序数据
 - 承载 `admin_api`（视图/RPC/审计）
 
-### 2.4 Grafana
+### 2.4 Water API Collector
+
+- 按配置轮询公开水质 HTTP 接口，支持历史分页回填和持续增量拉取
+- 将供应商字段映射为标准扁平遥测，并以逻辑设备 ID 作为 MQTT Client ID 发布
+- 通过 `_observed_at` 传递源采集时间；重叠窗口由 `topic + source_ts` 幂等处理
+
+### 2.5 Grafana
 
 - 可观测看板
 - 7 个页面（6 个管理页 + 1 个监测页）
 
-### 2.5 PostgREST
+### 2.6 PostgREST
 
 - 暴露 `admin_api` 的 REST/RPC
 - 通过 `x-admin-token` 做最小鉴权
@@ -91,6 +98,13 @@
 4. 多路源设备可按 `target_device_id` 合并到同一分钟桶
 5. `decoder-aggregator` 以逻辑 `target_device_id` 为发布端 Client ID，回发 `water/v1/.../telemetry`
 6. 后续继续走标准路径入库
+
+HTTP 拉取路径：
+
+1. `water-api-collector` 从公开接口分页拉取数据
+2. 每条记录映射为标准 JSON，并添加保留字段 `_observed_at`
+3. 服务以逻辑设备 ID 发布到 `water/v1/.../telemetry`
+4. EMQX 和 TimescaleDB 按标准路径处理；重复的源时间记录更新原始报文和指标
 
 ## 6. 自动化脚本分工
 

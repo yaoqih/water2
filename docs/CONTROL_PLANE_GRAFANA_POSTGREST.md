@@ -279,7 +279,7 @@ curl -sS \
 
 ## 8. 运行与变更注意事项
 
-- `./scripts/stack.sh configure --env <prod|test>` 会自动重放 `postgres/initdb/001_iot_init.sql` 与 `postgres/initdb/002_admin_api.sql`，并自动重启 `postgrest` 刷新 schema cache；`metric_dict` 种子仅在空表时初始化，不覆盖已有字典数据。
+- `./scripts/stack.sh configure --env <prod|test>` 会自动重放 `postgres/initdb/001_iot_init.sql`、`postgres/initdb/002_admin_api.sql` 与 `postgres/initdb/003_zouma_rehousing_water_api.sql`，并自动重启 `postgrest` 刷新 schema cache；`metric_dict` 种子仅在空表时初始化，不覆盖已有字典数据。
 - 当出现 `relation "admin_api.v_metric_export" does not exist` / `relation "admin_api.v_metric_export_fields" does not exist` 时，优先执行：
 
 ```bash

@@ -53,7 +53,8 @@
 
 - `raw_message`
   - PK: `raw_id` identity
-  - 字段：`ingest_ts`,`topic`,`msg_id`,`payload`
+  - 字段：`ingest_ts`,`source_ts`,`topic`,`msg_id`,`payload`
+  - 说明：`source_ts` 来自可选 `_observed_at`；同一 `topic + source_ts` 唯一，用于拉取源的重叠窗口幂等
   - 索引：`raw_message_ts_idx`,`raw_message_topic_ts_idx`,`raw_message_topic_msg_idx`
 
 - `metric_sample`（hypertable）
@@ -76,7 +77,7 @@
 4. 校验设备存在、启用、路径匹配
 5. 服务端生成 `msg_id`
 6. 写入 `raw_message`
-7. 按设备 `report_interval_sec + align_mode(floor/round)` 对齐 `metric_sample.ingest_ts` 后拆分写入
+7. 按设备 `report_interval_sec + align_mode(floor/round)` 对齐 `_observed_at`（未提供时为接收时间）后拆分写入 `metric_sample.ingest_ts`
 8. 更新 `device.last_seen_at`
 
 说明：
@@ -202,5 +203,6 @@
 
 - 数据面：`postgres/initdb/001_iot_init.sql`
 - 控制面：`postgres/initdb/002_admin_api.sql`
+- 走马安置房水厂公开接口点位：`postgres/initdb/003_zouma_rehousing_water_api.sql`
 
 说明：管理页交互与 API 路径见 `docs/CONTROL_PLANE_GRAFANA_POSTGREST.md`。

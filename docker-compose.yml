@@ -108,6 +108,29 @@ services:
     networks:
       - iot_net
 
+  water-api-collector:
+    build:
+      context: .
+      dockerfile: services/water_api_collector/Dockerfile
+    container_name: ${STACK_NAME:-iot}-water-api-collector
+    restart: unless-stopped
+    depends_on:
+      - emqx
+    environment:
+      WATER_API_MQTT_HOST: ${WATER_API_MQTT_HOST:-emqx}
+      WATER_API_MQTT_PORT: ${WATER_API_MQTT_PORT:-1883}
+      WATER_API_MQTT_USERNAME: ${EMQX_MQTT_USERNAME}
+      WATER_API_MQTT_PASSWORD: ${EMQX_MQTT_PASSWORD}
+      WATER_API_MQTT_KEEPALIVE_SEC: ${WATER_API_MQTT_KEEPALIVE_SEC:-30}
+      WATER_API_CONFIG_PATH: /app/config/sources.json
+      WATER_API_STATE_PATH: /var/lib/water-api-collector/state.json
+      WATER_API_LOG_LEVEL: ${WATER_API_LOG_LEVEL:-INFO}
+    volumes:
+      - ./services/water_api_collector/config/sources.json:/app/config/sources.json:ro
+      - water_api_collector_state:/var/lib/water-api-collector
+    networks:
+      - iot_net
+
   grafana:
     image: grafana/grafana:latest
     container_name: ${STACK_NAME:-iot}-grafana
@@ -174,6 +197,7 @@ volumes:
   emqx_data:
   emqx_log:
   grafana_data:
+  water_api_collector_state:
 
 networks:
   iot_net:

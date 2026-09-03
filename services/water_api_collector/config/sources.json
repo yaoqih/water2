@@ -1,0 +1,17 @@
+{
+  "api": {
+    "base_url": "http://120.27.63.118:9009/api/api/devices/public/waterdata"
+  },
+  "poll_interval_seconds": 180,
+  "overlap_seconds": 300,
+  "sources": [
+    {
+      "source_id": "zouma_inlet",
+      "device_code": "12891230",
+      "plant_id": "plant_cq_jlp_zouma_rehousing",
+      "point_id": "pt_cq_jlp_zouma_rehousing_inlet",
+      "device_id": "dev_cq_jlp_zouma_rehousing_inlet_01",
+      "initial_start_time": "2026-09-01T06:30:10+08:00"
+    }
+  ]
+}

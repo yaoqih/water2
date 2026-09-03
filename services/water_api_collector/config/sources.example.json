@@ -1,0 +1,17 @@
+{
+  "api": {
+    "base_url": "http://120.27.63.118:9009/api/api/devices/public/waterdata"
+  },
+  "poll_interval_seconds": 30,
+  "overlap_seconds": 300,
+  "sources": [
+    {
+      "source_id": "source_name",
+      "device_code": "12891230",
+      "plant_id": "plant_id",
+      "point_id": "pt_inlet",
+      "device_id": "dev_inlet_01",
+      "initial_start_time": "2000-01-01T00:00:00+08:00"
+    }
+  ]
+}

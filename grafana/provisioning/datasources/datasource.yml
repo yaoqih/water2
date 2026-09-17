@@ -18,6 +18,7 @@ datasources:
       sslmode: require
       postgresVersion: 1800
       timescaledb: true
+      connMaxLifetime: 600
     isDefault: true
     editable: true
   - name: TimescaleDB-Admin
@@ -33,4 +34,5 @@ datasources:
       sslmode: require
       postgresVersion: 1800
       timescaledb: true
+      connMaxLifetime: 600
     editable: true

@@ -61,7 +61,11 @@
   - 时间列：`ingest_ts`
   - 字段：`plant_id`,`point_id`,`device_id`,`metric`,`value_num`,`raw_id`
   - chunk interval：`1 day`
-  - 索引：`metric_sample_point_metric_ts_idx`,`metric_sample_device_metric_ts_idx`,`metric_sample_plant_metric_ts_idx`,`metric_sample_plant_metric_point_ts_idx`,`metric_sample_raw_id_idx`
+  - 索引：`metric_sample_point_metric_ts_idx`,`metric_sample_device_metric_ts_idx`,`metric_sample_plant_metric_ts_idx`,`metric_sample_plant_metric_point_ts_idx`,`metric_sample_raw_id_idx`,`metric_sample_plant_point_metric_device_ts_idx`
+- `metric_sample_source`
+  - PK: `(plant_id, point_id, device_id, metric)`
+  - 字段：`first_ingest_ts`,`last_ingest_ts`,`last_raw_id`,`last_value_num`
+  - 说明：ingest 时维护的“每个设备指标最新一行”目录，避免监控页 DISTINCT/窗口函数扫全历史
 
 ### 3.3 数据面函数
 
@@ -78,7 +82,8 @@
 5. 服务端生成 `msg_id`
 6. 写入 `raw_message`
 7. 按设备 `report_interval_sec + align_mode(floor/round)` 对齐 `_observed_at`（未提供时为接收时间）后拆分写入 `metric_sample.ingest_ts`
-8. 更新 `device.last_seen_at`
+8. upsert `metric_sample_source`（首次/最近采集时间与最新值）
+9. 更新 `device.last_seen_at`
 
 说明：
 
@@ -102,7 +107,9 @@
 - `admin_api.v_device_list`
 - `admin_api.v_metric_dict`
 - `admin_api.v_point_metric_source`
+- `admin_api.v_point_metric_resolved`
 - `admin_api.v_point_metric_effective`
+- `admin_api.v_point_metric_effective_latest`
 - `admin_api.v_device_metric_latest`
 - `admin_api.v_device_metric_series`
 - `admin_api.v_metric_export`
@@ -112,15 +119,23 @@
 
 说明：
 
+- `admin_api.v_point_metric_resolved`
+  - 用途：点位级展示源决策（手动绑定优先，仅当历史恰好一台设备时自动解析）
 - `admin_api.v_point_metric_effective`
-  - 用途：入口/出口等“点位级”监测页的有效显示来源视图
-  - 特点：会结合 `point_metric_source` 做单一展示源决策
+  - 用途：入口/出口等“点位级”监测页的有效显示来源时序
+  - 特点：topic 由 `plant_id/point_id/device_id` 派生，不再 JOIN `raw_message`
+- `admin_api.v_point_metric_effective_latest`
+  - 用途：点位监测页变量、实时卡片、告警线边界
+  - 特点：读 `metric_sample_source`，不扫 hypertable
 - `admin_api.v_device_metric_series`
   - 用途：通用设备监控页的设备级时序读模型
-  - 特点：保留 `device_id` 维度，不做 `point_id + metric` 收敛
+  - 特点：保留 `device_id` 维度，不做 `point_id + metric` 收敛；topic 派生，不 JOIN `raw_message`
 - `admin_api.v_device_metric_latest`
   - 用途：通用设备监控页的实时值读模型
-  - 特点：每个 `plant_id + point_id + device_id + metric` 仅保留最新一条，并附带 `freshness_sec/freshness_budget_sec/is_fresh`
+  - 特点：每个 `plant_id + point_id + device_id + metric` 仅保留最新一条（来自目录表），并附带 `freshness_sec/freshness_budget_sec/is_fresh`
+- `admin_api.v_metric_export`
+  - 用途：导出预览与 RPC 全量导出
+  - 特点：保留按筛选全量导出；topic 派生，避免为导出去扫 `raw_message`
 
 ### 4.3 控制面 RPC
 
@@ -142,7 +157,8 @@
   - `admin_api.export_metric_rows(p_fields, p_from, p_to, p_plant_id, p_point_id, p_device_id, p_metric, p_point_type, p_topic, p_limit)`
   - `p_plant_id/p_point_id/p_device_id/p_metric/p_point_type/p_topic` 支持逗号分隔多值
   - `p_metric/p_point_type` 会做小写归一化；`point_type` 仅允许 `all/inlet/outlet`
-- `p_limit <= 0` 视为“不限”（不设置 `LIMIT`）
+  - `p_limit <= 0` 视为“不限”（不设置 `LIMIT`）
+  - 函数级 `statement_timeout=10min`，全量导出不受集群 30s 超时限制
 
 删除语义：
 
@@ -171,8 +187,9 @@
   - 用途：EMQX Timescale connector 执行 `ingest_telemetry`
   - 授权：
     - `USAGE` on `public`
-    - `SELECT` on `device/point/metric_dict`
-    - `INSERT` on `raw_message/metric_sample`
+    - `SELECT` on `device/point/metric_dict/raw_message/metric_sample_source`
+    - `INSERT` on `raw_message/metric_sample/metric_sample_source`
+    - `UPDATE` on `metric_sample_source`
     - `UPDATE(last_seen_at)` on `device`
     - `USAGE, SELECT` on `public` sequences
     - `EXECUTE` on `public.ingest_telemetry(...)`

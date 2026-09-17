@@ -242,8 +242,8 @@
         "type": "query",
         "label": "topic",
         "datasource": "TimescaleDB-RO",
-        "query": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT DISTINCT ve.topic AS __value, ve.topic AS __text FROM admin_api.v_metric_export ve WHERE ve.topic IS NOT NULL AND ve.topic <> '' ORDER BY __text;",
-        "definition": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT DISTINCT ve.topic AS __value, ve.topic AS __text FROM admin_api.v_metric_export ve WHERE ve.topic IS NOT NULL AND ve.topic <> '' ORDER BY __text;",
+        "query": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT format('water/v1/%s/%s/%s/telemetry', pt.plant_id, d.point_id, d.device_id) AS __value, format('water/v1/%s/%s/%s/telemetry', pt.plant_id, d.point_id, d.device_id) AS __text FROM device d JOIN point pt ON pt.point_id = d.point_id ORDER BY __text;",
+        "definition": "SELECT '' AS __value, '全部' AS __text UNION ALL SELECT format('water/v1/%s/%s/%s/telemetry', pt.plant_id, d.point_id, d.device_id) AS __value, format('water/v1/%s/%s/%s/telemetry', pt.plant_id, d.point_id, d.device_id) AS __text FROM device d JOIN point pt ON pt.point_id = d.point_id ORDER BY __text;",
         "refresh": 1,
         "hide": 2,
         "includeAll": false,
@@ -355,7 +355,7 @@
           "refId": "F",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT '' AS value, '全部' AS label UNION ALL SELECT DISTINCT ve.topic AS value, ve.topic AS label FROM admin_api.v_metric_export ve WHERE ve.topic IS NOT NULL AND ve.topic <> '' ORDER BY label;"
+          "rawSql": "SELECT '' AS value, '全部' AS label UNION ALL SELECT format('water/v1/%s/%s/%s/telemetry', pt.plant_id, d.point_id, d.device_id) AS value, format('water/v1/%s/%s/%s/telemetry', pt.plant_id, d.point_id, d.device_id) AS label FROM device d JOIN point pt ON pt.point_id = d.point_id ORDER BY label;"
         }
       ],
       "pluginVersion": "6.3.1",

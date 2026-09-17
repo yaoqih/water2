@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION admin_api.write_audit(
 ) RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = admin_api, public
+SET search_path = public, admin_api
 AS $$
 BEGIN
   INSERT INTO admin_api.audit_log(actor, action, object_type, object_id, before_data, after_data)
@@ -126,21 +126,20 @@ SELECT
   visible
 FROM metric_dict;
 
+DROP VIEW IF EXISTS admin_api.v_point_metric_effective_latest;
 DROP VIEW IF EXISTS admin_api.v_point_metric_effective;
+DROP VIEW IF EXISTS admin_api.v_point_metric_resolved;
 DROP VIEW IF EXISTS admin_api.v_point_metric_source;
 
 CREATE OR REPLACE VIEW admin_api.v_point_metric_source AS
 WITH candidate AS (
   SELECT
-    md.point_id,
-    md.metric,
+    src.point_id,
+    src.metric,
     count(*) AS candidate_device_count,
-    string_agg(md.device_id, ', ' ORDER BY md.device_id) AS candidate_device_ids
-  FROM (
-    SELECT DISTINCT ms.point_id, ms.metric, ms.device_id
-    FROM metric_sample ms
-  ) AS md
-  GROUP BY md.point_id, md.metric
+    string_agg(src.device_id, ', ' ORDER BY src.device_id) AS candidate_device_ids
+  FROM metric_sample_source src
+  GROUP BY src.point_id, src.metric
 )
 SELECT
   (s.point_id || '|' || s.metric) AS source_key,
@@ -161,29 +160,27 @@ LEFT JOIN candidate
   ON candidate.point_id = s.point_id
  AND candidate.metric = s.metric;
 
-CREATE OR REPLACE VIEW admin_api.v_point_metric_effective AS
+CREATE OR REPLACE VIEW admin_api.v_point_metric_resolved AS
 WITH auto_single AS (
   SELECT
-    md.point_id,
-    md.metric,
-    min(md.device_id) AS device_id
-  FROM (
-    SELECT DISTINCT ms.point_id, ms.metric, ms.device_id
-    FROM metric_sample ms
-  ) AS md
+    src.point_id,
+    src.metric,
+    min(src.device_id) AS device_id
+  FROM metric_sample_source src
   LEFT JOIN point_metric_source manual
-    ON manual.point_id = md.point_id
-   AND manual.metric = md.metric
+    ON manual.point_id = src.point_id
+   AND manual.metric = src.metric
   WHERE manual.point_id IS NULL
-  GROUP BY md.point_id, md.metric
+  GROUP BY src.point_id, src.metric
   HAVING count(*) = 1
-), resolved AS (
-  SELECT s.point_id, s.metric, s.device_id, 'manual'::TEXT AS source_mode
-  FROM point_metric_source s
-  UNION ALL
-  SELECT a.point_id, a.metric, a.device_id, 'auto'::TEXT AS source_mode
-  FROM auto_single a
 )
+SELECT s.point_id, s.metric, s.device_id, 'manual'::TEXT AS source_mode
+FROM point_metric_source s
+UNION ALL
+SELECT a.point_id, a.metric, a.device_id, 'auto'::TEXT AS source_mode
+FROM auto_single a;
+
+CREATE OR REPLACE VIEW admin_api.v_point_metric_effective AS
 SELECT
   ms.ingest_ts,
   ms.plant_id,
@@ -201,19 +198,51 @@ SELECT
   md.alarm_low,
   md.alarm_high,
   ms.value_num,
-  rm.topic,
+  format('water/v1/%s/%s/%s/telemetry', ms.plant_id, ms.point_id, ms.device_id) AS topic,
   ms.raw_id,
   resolved.source_mode
 FROM metric_sample ms
-JOIN resolved
+JOIN admin_api.v_point_metric_resolved resolved
   ON resolved.point_id = ms.point_id
  AND resolved.metric = ms.metric
  AND resolved.device_id = ms.device_id
 LEFT JOIN plant p ON p.plant_id = ms.plant_id
 LEFT JOIN point pt ON pt.point_id = ms.point_id AND pt.plant_id = ms.plant_id
 LEFT JOIN device d ON d.device_id = ms.device_id AND d.point_id = ms.point_id
-LEFT JOIN metric_dict md ON md.metric = ms.metric
-LEFT JOIN raw_message rm ON rm.raw_id = ms.raw_id;
+LEFT JOIN metric_dict md ON md.metric = ms.metric;
+
+CREATE OR REPLACE VIEW admin_api.v_point_metric_effective_latest AS
+SELECT
+  src.last_ingest_ts AS ingest_ts,
+  src.first_ingest_ts,
+  src.last_ingest_ts,
+  src.plant_id,
+  p.plant_name,
+  p.timezone AS plant_timezone,
+  src.point_id,
+  COALESCE(pt.point_name, '') AS point_name,
+  pt.point_type,
+  src.device_id,
+  d.report_interval_sec,
+  d.align_mode,
+  src.metric,
+  COALESCE(md.display_name, src.metric) AS display_name,
+  md.unit,
+  md.alarm_low,
+  md.alarm_high,
+  src.last_value_num AS value_num,
+  format('water/v1/%s/%s/%s/telemetry', src.plant_id, src.point_id, src.device_id) AS topic,
+  src.last_raw_id AS raw_id,
+  resolved.source_mode
+FROM metric_sample_source src
+JOIN admin_api.v_point_metric_resolved resolved
+  ON resolved.point_id = src.point_id
+ AND resolved.metric = src.metric
+ AND resolved.device_id = src.device_id
+LEFT JOIN plant p ON p.plant_id = src.plant_id
+LEFT JOIN point pt ON pt.point_id = src.point_id AND pt.plant_id = src.plant_id
+LEFT JOIN device d ON d.device_id = src.device_id AND d.point_id = src.point_id
+LEFT JOIN metric_dict md ON md.metric = src.metric;
 
 DROP VIEW IF EXISTS admin_api.v_device_metric_latest;
 DROP VIEW IF EXISTS admin_api.v_device_metric_series;
@@ -239,66 +268,59 @@ SELECT
   md.alarm_high,
   md.visible,
   ms.value_num,
-  rm.topic,
+  format('water/v1/%s/%s/%s/telemetry', ms.plant_id, ms.point_id, ms.device_id) AS topic,
   ms.raw_id
 FROM metric_sample ms
 LEFT JOIN plant p ON p.plant_id = ms.plant_id
 LEFT JOIN point pt ON pt.point_id = ms.point_id AND pt.plant_id = ms.plant_id
 LEFT JOIN device d ON d.device_id = ms.device_id AND d.point_id = ms.point_id
-LEFT JOIN metric_dict md ON md.metric = ms.metric
-LEFT JOIN raw_message rm ON rm.raw_id = ms.raw_id;
+LEFT JOIN metric_dict md ON md.metric = ms.metric;
 
 CREATE OR REPLACE VIEW admin_api.v_device_metric_latest AS
-WITH ranked AS (
-  SELECT
-    s.*,
-    row_number() OVER (
-      PARTITION BY s.plant_id, s.point_id, s.device_id, s.metric
-      ORDER BY s.ingest_ts DESC, s.raw_id DESC NULLS LAST
-    ) AS rn
-  FROM admin_api.v_device_metric_series s
-)
 SELECT
-  r.ingest_ts,
-  r.plant_id,
-  r.plant_name,
-  r.plant_timezone,
-  r.point_id,
-  r.point_name,
-  r.point_type,
-  r.device_id,
-  r.report_interval_sec,
-  r.align_mode,
-  r.enabled,
-  r.last_seen_at,
-  r.metric,
-  r.display_name,
-  r.unit,
-  r.alarm_low,
-  r.alarm_high,
-  r.visible,
-  r.value_num,
-  r.topic,
-  r.raw_id,
+  src.last_ingest_ts AS ingest_ts,
+  src.plant_id,
+  p.plant_name,
+  p.timezone AS plant_timezone,
+  src.point_id,
+  COALESCE(pt.point_name, '') AS point_name,
+  pt.point_type,
+  src.device_id,
+  d.report_interval_sec,
+  d.align_mode,
+  d.enabled,
+  d.last_seen_at,
+  src.metric,
+  COALESCE(md.display_name, src.metric) AS display_name,
+  md.unit,
+  md.alarm_low,
+  md.alarm_high,
+  md.visible,
+  src.last_value_num AS value_num,
+  format('water/v1/%s/%s/%s/telemetry', src.plant_id, src.point_id, src.device_id) AS topic,
+  src.last_raw_id AS raw_id,
   GREATEST(
     0::bigint,
-    ceil(extract(epoch FROM (now() - r.ingest_ts)))::bigint
+    ceil(extract(epoch FROM (now() - src.last_ingest_ts)))::bigint
   ) AS freshness_sec,
   CASE
-    WHEN COALESCE(r.report_interval_sec, 0) > 0 THEN GREATEST((r.report_interval_sec * 2)::bigint, 60::bigint)
+    WHEN COALESCE(d.report_interval_sec, 0) > 0 THEN GREATEST((d.report_interval_sec * 2)::bigint, 60::bigint)
     ELSE 300::bigint
   END AS freshness_budget_sec,
   (
     GREATEST(
       0::bigint,
-      ceil(extract(epoch FROM (now() - r.ingest_ts)))::bigint
+      ceil(extract(epoch FROM (now() - src.last_ingest_ts)))::bigint
     ) <= CASE
-      WHEN COALESCE(r.report_interval_sec, 0) > 0 THEN GREATEST((r.report_interval_sec * 2)::bigint, 60::bigint)
+      WHEN COALESCE(d.report_interval_sec, 0) > 0 THEN GREATEST((d.report_interval_sec * 2)::bigint, 60::bigint)
       ELSE 300::bigint
     END
   ) AS is_fresh
-FROM ranked r
-WHERE r.rn = 1;
+FROM metric_sample_source src
+LEFT JOIN plant p ON p.plant_id = src.plant_id
+LEFT JOIN point pt ON pt.point_id = src.point_id AND pt.plant_id = src.plant_id
+LEFT JOIN device d ON d.device_id = src.device_id AND d.point_id = src.point_id
+LEFT JOIN metric_dict md ON md.metric = src.metric;
 
 DROP VIEW IF EXISTS admin_api.v_metric_export_fields;
 DROP VIEW IF EXISTS admin_api.v_metric_export;
@@ -318,13 +340,12 @@ SELECT
   md.alarm_low,
   md.alarm_high,
   ms.value_num,
-  rm.topic,
+  format('water/v1/%s/%s/%s/telemetry', ms.plant_id, ms.point_id, ms.device_id) AS topic,
   ms.raw_id
 FROM metric_sample ms
 LEFT JOIN plant p ON p.plant_id = ms.plant_id
 LEFT JOIN point pt ON pt.point_id = ms.point_id AND pt.plant_id = ms.plant_id
-LEFT JOIN metric_dict md ON md.metric = ms.metric
-LEFT JOIN raw_message rm ON rm.raw_id = ms.raw_id;
+LEFT JOIN metric_dict md ON md.metric = ms.metric;
 
 CREATE OR REPLACE VIEW admin_api.v_metric_export_fields AS
 SELECT
@@ -371,6 +392,7 @@ CREATE OR REPLACE FUNCTION admin_api.export_metric_rows(
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, admin_api
+SET statement_timeout = '10min'
 AS $$
 DECLARE
   v_allowed_fields CONSTANT TEXT[] := ARRAY[
@@ -1237,7 +1259,9 @@ GRANT SELECT ON
   admin_api.v_device_list,
   admin_api.v_metric_dict,
   admin_api.v_point_metric_source,
+  admin_api.v_point_metric_resolved,
   admin_api.v_point_metric_effective,
+  admin_api.v_point_metric_effective_latest,
   admin_api.v_device_metric_latest,
   admin_api.v_device_metric_series,
   admin_api.v_metric_export,

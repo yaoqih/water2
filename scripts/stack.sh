@@ -205,7 +205,8 @@ GRANT iot_api_editor TO ${POSTGREST_DB_USER};
 GRANT CONNECT ON DATABASE ${POSTGRES_DB} TO ${EMQX_TS_DB_USER};
 GRANT USAGE ON SCHEMA public TO ${EMQX_TS_DB_USER};
 GRANT SELECT ON TABLE public.device, public.point, public.metric_dict, public.raw_message TO ${EMQX_TS_DB_USER};
-GRANT INSERT ON TABLE public.raw_message, public.metric_sample TO ${EMQX_TS_DB_USER};
+GRANT INSERT ON TABLE public.raw_message, public.metric_sample, public.metric_sample_source TO ${EMQX_TS_DB_USER};
+GRANT SELECT, UPDATE ON TABLE public.metric_sample_source TO ${EMQX_TS_DB_USER};
 GRANT UPDATE (msg_id, payload) ON TABLE public.raw_message TO ${EMQX_TS_DB_USER};
 GRANT DELETE ON TABLE public.metric_sample TO ${EMQX_TS_DB_USER};
 GRANT SELECT (raw_id) ON TABLE public.metric_sample TO ${EMQX_TS_DB_USER};
@@ -270,6 +271,7 @@ GRANT USAGE ON SCHEMA admin_api TO ${grafana_admin_user}, ${grafana_ro_user};
 GRANT SELECT ON TABLE
   public.raw_message,
   public.metric_sample,
+  public.metric_sample_source,
   public.metric_dict,
   public.point_metric_source,
   public.plant,
@@ -281,7 +283,9 @@ GRANT SELECT ON TABLE
   admin_api.v_device_list,
   admin_api.v_metric_dict,
   admin_api.v_point_metric_source,
+  admin_api.v_point_metric_resolved,
   admin_api.v_point_metric_effective,
+  admin_api.v_point_metric_effective_latest,
   admin_api.v_device_metric_latest,
   admin_api.v_device_metric_series,
   admin_api.v_metric_export,

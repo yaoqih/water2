@@ -64,7 +64,7 @@ Grafana 页面 UID：
 - 字段字典（含关联字段）统一来自 `admin_api.v_metric_export_fields`
 - 导出预览支持按字段筛选（`plant/point/device/metric/point_type/topic` 支持多选）
 - 下载导出走后端固定 RPC：`admin_api.export_metric_rows(...)`（字段白名单 + 参数化过滤 + 逗号分隔多值过滤）
-- 导出行数支持“不限”（`p_limit <= 0` 时不设置 `LIMIT`）
+- 导出行数支持“不限”（`p_limit <= 0` 时不设置 `LIMIT`）；RPC 使用 10 分钟语句超时，按当前筛选全量导出
 
 8) `iot-v1-plant-monitor`（Plant Monitor）
 - 左上角厂站选择显示 `plant_name`（实际值为 `plant_id`），页面所有查询按 `plant_id` 过滤
@@ -178,6 +178,7 @@ Grafana 页面 UID：
 - `/v_point_list`
 - `/v_device_list`
 - `/v_metric_dict`
+- `/v_point_metric_effective_latest`
 - `/v_device_metric_latest`
 - `/v_device_metric_series`
 - `/v_metric_export`
@@ -191,7 +192,7 @@ Grafana 页面 UID：
 
 - Grafana 导出：调用 `admin_api.export_metric_rows(...)`（服务端字段白名单）。
 - Grafana 导出表单筛选支持多选，后端按逗号分隔多值匹配（`point_type` 允许 `all/inlet/outlet`）。
-- `p_limit <= 0` 视为“不限”（不设置 `LIMIT`）。
+- `p_limit <= 0` 视为“不限”（不设置 `LIMIT`）；`export_metric_rows` 语句超时 10 分钟。
 - URL 基础：`/v_metric_export`（用于直接 API 导出）
 - 字段选择：`select=ingest_ts,plant_id,plant_name,device_id,metric,value_num,unit`
 - 字段筛选：可对已暴露列使用 PostgREST 标准过滤，如

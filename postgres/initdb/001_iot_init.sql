@@ -173,6 +173,55 @@ CREATE INDEX IF NOT EXISTS metric_sample_plant_metric_ts_idx
 CREATE INDEX IF NOT EXISTS metric_sample_plant_metric_point_ts_idx
   ON metric_sample (plant_id, metric, point_id, ingest_ts DESC);
 
+SET statement_timeout TO 0;
+
+CREATE INDEX IF NOT EXISTS metric_sample_plant_point_metric_device_ts_idx
+  ON metric_sample (plant_id, point_id, metric, device_id, ingest_ts DESC);
+
+CREATE TABLE IF NOT EXISTS metric_sample_source (
+  plant_id                 TEXT NOT NULL,
+  point_id                 TEXT NOT NULL,
+  device_id                TEXT NOT NULL,
+  metric                   TEXT NOT NULL,
+  first_ingest_ts          TIMESTAMPTZ NOT NULL,
+  last_ingest_ts           TIMESTAMPTZ NOT NULL,
+  last_raw_id              BIGINT,
+  last_value_num           DOUBLE PRECISION NOT NULL,
+  CONSTRAINT metric_sample_source_pkey PRIMARY KEY (plant_id, point_id, device_id, metric)
+);
+
+CREATE INDEX IF NOT EXISTS metric_sample_source_point_metric_idx
+  ON metric_sample_source (point_id, metric, device_id);
+
+CREATE INDEX IF NOT EXISTS metric_sample_source_device_metric_idx
+  ON metric_sample_source (device_id, metric, last_ingest_ts DESC);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM metric_sample_source LIMIT 1) THEN
+    INSERT INTO metric_sample_source(
+      plant_id, point_id, device_id, metric,
+      first_ingest_ts, last_ingest_ts, last_raw_id, last_value_num
+    )
+    SELECT DISTINCT ON (ms.plant_id, ms.point_id, ms.device_id, ms.metric)
+      ms.plant_id,
+      ms.point_id,
+      ms.device_id,
+      ms.metric,
+      min(ms.ingest_ts) OVER (
+        PARTITION BY ms.plant_id, ms.point_id, ms.device_id, ms.metric
+      ) AS first_ingest_ts,
+      ms.ingest_ts,
+      ms.raw_id,
+      ms.value_num
+    FROM metric_sample ms
+    ORDER BY ms.plant_id, ms.point_id, ms.device_id, ms.metric, ms.ingest_ts DESC, ms.raw_id DESC NULLS LAST;
+  END IF;
+END;
+$$;
+
+SET statement_timeout TO '30s';
+
 DROP FUNCTION IF EXISTS ingest_telemetry(TEXT, JSONB, TEXT, SMALLINT);
 DROP FUNCTION IF EXISTS ingest_telemetry(TEXT, JSONB, TEXT, INT);
 DROP FUNCTION IF EXISTS ingest_telemetry(TEXT, TEXT, TEXT, SMALLINT);
@@ -359,6 +408,29 @@ BEGIN
       lower(metric_kv.key), v_value,
       v_raw_id
     );
+
+    INSERT INTO metric_sample_source(
+      plant_id, point_id, device_id, metric,
+      first_ingest_ts, last_ingest_ts, last_raw_id, last_value_num
+    ) VALUES (
+      v_plant_id, v_point_id, v_device_id, lower(metric_kv.key),
+      v_aligned_ts, v_aligned_ts, v_raw_id, v_value
+    )
+    ON CONFLICT ON CONSTRAINT metric_sample_source_pkey DO UPDATE
+    SET first_ingest_ts = LEAST(metric_sample_source.first_ingest_ts, EXCLUDED.first_ingest_ts),
+        last_ingest_ts = GREATEST(metric_sample_source.last_ingest_ts, EXCLUDED.last_ingest_ts),
+        last_raw_id = CASE
+          WHEN EXCLUDED.last_ingest_ts > metric_sample_source.last_ingest_ts THEN EXCLUDED.last_raw_id
+          WHEN EXCLUDED.last_ingest_ts = metric_sample_source.last_ingest_ts
+               AND COALESCE(EXCLUDED.last_raw_id, -1) >= COALESCE(metric_sample_source.last_raw_id, -1) THEN EXCLUDED.last_raw_id
+          ELSE metric_sample_source.last_raw_id
+        END,
+        last_value_num = CASE
+          WHEN EXCLUDED.last_ingest_ts > metric_sample_source.last_ingest_ts THEN EXCLUDED.last_value_num
+          WHEN EXCLUDED.last_ingest_ts = metric_sample_source.last_ingest_ts
+               AND COALESCE(EXCLUDED.last_raw_id, -1) >= COALESCE(metric_sample_source.last_raw_id, -1) THEN EXCLUDED.last_value_num
+          ELSE metric_sample_source.last_value_num
+        END;
   END LOOP;
 
   UPDATE device

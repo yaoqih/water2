@@ -123,3 +123,54 @@ BEGIN
   END IF;
 END;
 $$;
+
+DO $$
+DECLARE
+  v_source_count integer;
+  v_last_value double precision;
+  v_latest_count integer;
+  v_export_count integer;
+BEGIN
+  SELECT count(*), max(last_value_num)
+  INTO v_source_count, v_last_value
+  FROM metric_sample_source
+  WHERE plant_id = 'plant_test_water_api'
+    AND point_id = 'pt_test_water_api_inlet'
+    AND device_id = 'dev_test_water_api_inlet_01'
+    AND metric = 'cod';
+
+  IF v_source_count <> 1 OR v_last_value <> 81.4 THEN
+    RAISE EXCEPTION 'metric_sample_source was not upserted';
+  END IF;
+
+  SELECT count(*)
+  INTO v_latest_count
+  FROM admin_api.v_device_metric_latest
+  WHERE plant_id = 'plant_test_water_api'
+    AND point_id = 'pt_test_water_api_inlet'
+    AND device_id = 'dev_test_water_api_inlet_01'
+    AND metric = 'cod'
+    AND value_num = 81.4;
+  IF v_latest_count <> 1 THEN
+    RAISE EXCEPTION 'v_device_metric_latest did not use catalog latest value';
+  END IF;
+
+  SELECT count(*)
+  INTO v_export_count
+  FROM admin_api.export_metric_rows(
+    ARRAY['ingest_ts','plant_id','device_id','metric','value_num','topic']::text[],
+    '2026-08-02T03:04:00+08:00'::timestamptz,
+    '2026-08-02T03:05:00+08:00'::timestamptz,
+    'plant_test_water_api',
+    'pt_test_water_api_inlet',
+    'dev_test_water_api_inlet_01',
+    'cod',
+    'all',
+    NULL,
+    0
+  );
+  IF v_export_count <> 1 THEN
+    RAISE EXCEPTION 'unlimited export_metric_rows did not return the filtered sample';
+  END IF;
+END;
+$$;

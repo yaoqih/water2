@@ -74,6 +74,10 @@ curl -k https://127.0.0.1:2443/api/health
   - 先确认容器健康：`docker compose --env-file env/test.env -p iot-test ps`。
   - 再执行：`./scripts/stack.sh configure --env test`。
 
+- `db query error: pq: canceling statement due to statement timeout`
+  - 集群默认 `statement_timeout=30s`。监控页应走目录视图；全量导出走 `export_metric_rows`（函数内 10min）。
+  - 先执行：`./scripts/stack.sh configure --env test`（prod 用 `--env prod`）收敛 schema 与 Grafana 数据源超时。
+
 - `db query error: pq: relation "admin_api.v_metric_export" does not exist`
   - 说明当前数据库 schema 未收敛到最新版本。
   - 执行：`./scripts/stack.sh configure --env test`（prod 用 `--env prod`）。

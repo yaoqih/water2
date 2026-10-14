@@ -1,0 +1,17 @@
+[Unit]
+Description=Serial water quality bridge to EMQX
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=serial-emqx
+Group=dialout
+WorkingDirectory=/opt/serial-emqx-bridge
+EnvironmentFile=/etc/serial-emqx-bridge.env
+ExecStart=/opt/serial-emqx-bridge/.venv/bin/python -m serial_emqx_bridge
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -31,7 +31,7 @@ def run() -> None:
     username = env("MQTT_USERNAME", "device_user")
     if username:
         client.username_pw_set(username, env("MQTT_PASSWORD", "0ebec348c00d38f7c9ab32f2"))
-    client.connect(env("MQTT_HOST", "water.blenet.top"), int(env("MQTT_PORT", "1883")), 60)
+    client.connect(env("MQTT_HOST", "1.14.58.49"), int(env("MQTT_PORT", "1883")), 60)
     client.loop_start()
     buffer = FrameBuffer()
     while True:

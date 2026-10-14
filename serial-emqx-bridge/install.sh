@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+pip install paho_mqtt-2.1.0-py3-none-any.whl
+pip install pyserial-3.5-py2.py3-none-any.whl
 [[ $EUID -eq 0 ]] || { echo 'Run as root: sudo ./install.sh'; exit 1; }
 [[ -x /usr/bin/python3 ]] || { echo 'Missing /usr/bin/python3 (Python 3.10+ required).'; exit 1; }
 if ! PYTHONNOUSERSITE=1 /usr/bin/python3 - <<'PY'

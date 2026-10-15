@@ -64,7 +64,7 @@
 说明：
 
 - 对直接发布标准 topic 的设备，上述 `Client ID == device_id` 规则保持不变。
-- 对发布原始 `water/raw/v1/.../telemetry` 的上传模块，数据库不直接消费其消息；`decoder-aggregator` 会按源 `device_id` 查 profile，必要时再按 Modbus 查询帧特征区分多个传感器，解码后以逻辑 `target_device_id` 作为发布端 Client ID 回发标准 topic。
+- 对通过 `water/raw/v1/.../telemetry` 发布 Modbus 原始帧的上传模块，`decoder-aggregator` 会按源 `device_id` 查 profile，必要时再按 Modbus 查询帧特征区分多个传感器，解码后以逻辑 `target_device_id` 作为发布端 Client ID 回发标准 topic。已由串口桥接器解码的扁平 JSON 使用 4.3 节的直接入库路径。
 
 ## 4. Payload 规范
 
@@ -101,10 +101,13 @@ HTTP 拉取示例：
 
 ### 4.3 原始 topic Payload
 
-`water/raw/v1/{plant_id}/{point_id}/{device_id}/telemetry` 的 payload 支持两种形式：
+`water/raw/v1/{plant_id}/{point_id}/{device_id}/telemetry` 的 payload 支持以下形式：
 
 - 纯十六进制字符串
 - 原始二进制 `Modbus-RTU` 查询帧 + 应答帧拼接
+- 串口桥接器已解码、校验通过的扁平 JSON，例如 `{"watert":23.8,"turbidity":69.5,"ss":252.4,"cod":97.2,"amnitro":19.82}`
+
+扁平 JSON 由 EMQX 的 `rule_water_raw_json_telemetry` 处理：仅匹配对象文本且要求 `clientid == topic 中的 device_id`，将入库参数的 topic 从 `water/raw/v1/...` 转为 `water/v1/...`，保留原始 payload 和 clientid，调用同一个 `ingest_telemetry()`。该路径直接入库，不额外发布标准 MQTT 消息、不经过分钟聚合，数据库中的 `report_interval_sec/align_mode` 仍然生效。这样桥接器与解码器不会使用同一个 Client ID 互相断开连接。非 JSON 的 Modbus 原始帧继续走下面的解码聚合路径。
 
 当前实现支持：
 

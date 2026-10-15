@@ -6,6 +6,11 @@ import time
 from .parser import FrameBuffer, parse_frame
 
 LOG = logging.getLogger("serial-emqx-bridge")
+DEFAULT_CLIENT_ID = "dev_cqbb_liaoning53_in_04"
+DEFAULT_TOPIC = (
+    "water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/"
+    f"{DEFAULT_CLIENT_ID}/telemetry"
+)
 
 
 def env(name: str, default: str) -> str:
@@ -13,7 +18,7 @@ def env(name: str, default: str) -> str:
 
 
 def publish(client, payload: dict) -> None:
-    topic = env("MQTT_TOPIC", "water/serial/v1/telemetry")
+    topic = env("MQTT_TOPIC", DEFAULT_TOPIC)
     info = client.publish(topic, json.dumps(payload, separators=(",", ":")), qos=int(env("MQTT_QOS", "1")))
     info.wait_for_publish()
 
@@ -27,7 +32,7 @@ def run() -> None:
     import paho.mqtt.client as mqtt
     import serial
 
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=env("MQTT_CLIENT_ID", ""))
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=env("MQTT_CLIENT_ID", DEFAULT_CLIENT_ID))
     username = env("MQTT_USERNAME", "device_user")
     if username:
         client.username_pw_set(username, env("MQTT_PASSWORD", "0ebec348c00d38f7c9ab32f2"))
@@ -43,7 +48,7 @@ def run() -> None:
                         try:
                             result = parse_frame(frame)
                             publish(client, result)
-                            LOG.info("published telemetry: %s", result["values"])
+                            LOG.info("published telemetry: %s", result)
                         except ValueError as exc:
                             LOG.warning("discarding invalid frame: %s (%s)", frame, exc)
         except (serial.SerialException, OSError) as exc:

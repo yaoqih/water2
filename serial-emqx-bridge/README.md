@@ -11,7 +11,11 @@ BG,TEMP:+00238,ZD:00695,XFW:02524,COD:00972,AD:01982,JY:03299,ED
 
 ```
 
-Scaling is applied as follows: `TEMP`, `ZD`, `XFW`, `COD`, and `JY` divide by 10; `AD` divides by 100. The published payload includes the scaled values and the original integer values.
+Scaling is applied as follows: `TEMP`, `ZD`, `XFW`, and `COD` divide by 10; `AD` divides by 100. `JY` is the decimal checksum: sum all ASCII bytes from `BG` through the `JY:` label, excluding the checksum digits, then compare it with the `JY` number. The bridge publishes flat server metric names: `watert`, `turbidity`, `ss`, `cod`, and `amnitro`.
+
+The default destination is `water/raw/v1/plant_cqbb_liaoning53/pt_cqbb_liaoning53_inlet/dev_cqbb_liaoning53_in_04/telemetry`, with MQTT Client ID `dev_cqbb_liaoning53_in_04`, serial port `/dev/ttyS0`, and baud rate `115200`. Invalid frames and checksum mismatches are discarded.
+
+On the server, `rule_water_raw_json_telemetry` in `scripts/stack.sh` removes `/raw` from the topic supplied to `ingest_telemetry()` and preserves the original publisher Client ID. This path writes the already-decoded JSON directly, without creating a second MQTT connection with the same ID. The database must have an enabled device matching the topic. Modbus raw messages still use `decoder-aggregator`.
 
 ## Run locally
 
@@ -46,4 +50,4 @@ sudo /usr/bin/python3 -m pip install --no-index ../paho_mqtt-2.1.0-py3-none-any.
 
 ## Example decoded payload
 
-The sample above becomes `TEMP=23.8`, `ZD=69.5`, `XFW=252.4`, `COD=97.2`, `AD=19.82`, and `JY=3299.0`.
+The sample above becomes `{"watert":23.8,"turbidity":69.5,"ss":252.4,"cod":97.2,"amnitro":19.82}`.

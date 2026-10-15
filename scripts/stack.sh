@@ -869,10 +869,12 @@ configure_emqx_direct_ingest() {
   local action_name="ts_ingest_telemetry_water_v1"
   local action_id="timescale:${action_name}"
   local rule_id="rule_water_v1_telemetry"
+  local raw_json_rule_id="rule_water_raw_json_telemetry"
 
   local connector_json="${TMP_DIR}/connector.json"
   local action_json="${TMP_DIR}/action.json"
   local rule_json="${TMP_DIR}/rule.json"
+  local raw_json_rule="${TMP_DIR}/raw-json-rule.json"
 
   cat > "${connector_json}" <<EOF_CONNECTOR
 {
@@ -920,6 +922,21 @@ EOF_ACTION
 }
 EOF_RULE
 
+  # The serial bridge has already decoded and checked BG...ED frames.  Route
+  # its flat JSON to the same ingest action with the original client ID;
+  # a second MQTT publisher using that ID would disconnect the bridge.
+  cat > "${raw_json_rule}" <<EOF_RAW_JSON_RULE
+{
+  "id": "${raw_json_rule_id}",
+  "name": "water_raw_json_to_timescale",
+  "enable": true,
+  "sql": "SELECT replace(topic, 'water/raw/v1/', 'water/v1/') AS topic, payload, clientid, qos FROM \"water/raw/v1/+/+/+/telemetry\" WHERE clientid = topic(6) AND regex_match(payload, '^[[:space:]]*[{]')",
+  "actions": ["${action_id}"],
+  "description": "Normalize decoded raw JSON topics for ingest_telemetry(), preserving publisher identity"
+}
+EOF_RAW_JSON_RULE
+
+  curl -sS "${EMQX_AUTH[@]}" -X DELETE "${EMQX_API_BASE}/rules/${raw_json_rule_id}" >/dev/null || true
   curl -sS "${EMQX_AUTH[@]}" -X DELETE "${EMQX_API_BASE}/rules/${rule_id}" >/dev/null || true
   curl -sS "${EMQX_AUTH[@]}" -X DELETE "${EMQX_API_BASE}/actions/${action_id}" >/dev/null || true
   curl -sS "${EMQX_AUTH[@]}" -X DELETE "${EMQX_API_BASE}/connectors/${connector_id}" >/dev/null || true
@@ -927,6 +944,7 @@ EOF_RULE
   post_or_allow_exists "connectors" "${connector_json}" "${TMP_DIR}/connectors.out"
   post_or_allow_exists "actions" "${action_json}" "${TMP_DIR}/actions.out"
   post_or_allow_exists "rules" "${rule_json}" "${TMP_DIR}/rules.out"
+  post_or_allow_exists "rules" "${raw_json_rule}" "${TMP_DIR}/raw-json-rule.out"
 
   echo "EMQX direct ingest ready (${STACK_ENV})"
 }
